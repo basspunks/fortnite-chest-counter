@@ -323,6 +323,8 @@ void app.whenReady().then(() => {
     if (action === 'toggleBar') {
       // show / hide the bar (only the bar: settings stay as they are)
       if (view === 'counter') {
+        // hidden by hand: "Open with Fortnite" must not bring it back while the game runs
+        closedByHand = !barHidden;
         if (barHidden) showBar();
         else hideBar();
       }
@@ -582,7 +584,7 @@ void app.whenReady().then(() => {
 
   // "Open with Fortnite": starts with Windows (hidden, --standby) and shows the counter only while the game runs.
   const standby = process.argv.includes('--standby');
-  let closedByHand = false; // the bar was closed with ×: stay hidden until the game closes and starts again
+  let closedByHand = false; // hidden with × or Ctrl+Shift+O: stays hidden until shown again or the game restarts
   const watch = new FortniteWatch((visible) => {
     if (view === 'settings') return; // never hide settings the player is using
     if (!visible) closedByHand = false;
