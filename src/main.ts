@@ -62,7 +62,7 @@ export interface AppState {
    * Replay check of the last finished match: 'off', 'checking', 'done' (with replay and sound counts),
    * 'missing' (no replay: recording is off in Fortnite) or 'failed' (with the reason).
    */
-  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly reason?: string };
+  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly seen?: number; readonly reason?: string };
   readonly onlyHuntMatches: boolean;
   readonly notifications: boolean;
   readonly cat: boolean;
@@ -395,18 +395,21 @@ void app.whenReady().then(() => {
   });
 
   // Fortnite's log says when a match starts and when the player is back in the lobby.
-  // After each match, Fortnite's replay of it gives the exact count: it always replaces what the sound counted.
+  // After each match, Fortnite's replay of it gives the exact count: it replaces what was counted live. Only when the
+  // screen saw more chests opened than the replay has, the screen's number stays: at busy moments Fortnite's replay
+  // recorder falls behind ("Frames Over Budget" in its log) and loses who opened what, so the replay can miss chests.
   // Replays are required: without one the sound's count stays, and the bar says replays are off.
   const replays = new ReplayReader(appFile('replay-reader', 'bin', 'chest-replay.exe'), process.env['CHEST_REPLAYS']);
   let replay: AppState['replay'] = { status: 'off' };
   let matchStartMs = Date.now();
+  let seenAtMatchStart = 0; // chests seen on screen before this match
   /** A finished match as the replay tells it. */
-  const fromReplay = (result: ReplayResult, heardThisMatch: number, loggedStartMs: number, endedMs: number): MatchRecord => {
+  const fromReplay = (result: ReplayResult, heardThisMatch: number, seenThisMatch: number, loggedStartMs: number, endedMs: number): MatchRecord => {
     const startMs = replayStartMs(result) ?? loggedStartMs;
     return {
       endedMs,
       startMs,
-      chests: result.chests ?? 0,
+      chests: Math.max(result.chests ?? 0, seenThisMatch),
       heard: heardThisMatch,
       fromReplay: true,
       ...(result.mode ? { mode: result.mode } : {}),
@@ -420,18 +423,18 @@ void app.whenReady().then(() => {
   };
 
   /** Reads the replay of the match that ran from `startMs` to `endMs` and puts its exact numbers in place of the sound's. */
-  const checkReplay = async (startMs: number, endMs: number): Promise<void> => {
+  const checkReplay = async (startMs: number, endMs: number, seenThisMatch: number): Promise<void> => {
     const heardThisMatch = history.last(1)[0] ?? 0;
     replay = { status: 'checking' };
     push();
     const result = await replays.readMatch(startMs, endMs);
     if (result?.ok && typeof result.chests === 'number') {
-      const record = fromReplay(result, heardThisMatch, startMs, endMs);
+      const record = fromReplay(result, heardThisMatch, seenThisMatch, startMs, endMs);
       if (!record.counted) {
         // not a treasure hunt match: out of the totals, kept in the list
         counter.correctFinishedMatch(-history.removeLast());
       } else {
-        counter.correctFinishedMatch(history.correctLast(result.chests));
+        counter.correctFinishedMatch(history.correctLast(record.chests));
       }
       records.replaceLast(record);
       saveCounts();
@@ -440,7 +443,7 @@ void app.whenReady().then(() => {
         const names = found.map((t) => (t.prizeId ? findPrize(content, t.prizeId)?.prize.name : undefined) ?? t.item ?? 'a treasure');
         notify('Treasure found!', `Last match: ${names.join(', ')}`);
       }
-      replay = { status: record.counted ? 'done' : 'skipped', chests: result.chests, broken: result.destroyed ?? 0, heard: heardThisMatch, reason: result.mode ?? '' };
+      replay = { status: record.counted ? 'done' : 'skipped', chests: result.chests, broken: result.destroyed ?? 0, heard: heardThisMatch, seen: seenThisMatch, reason: result.mode ?? '' };
     } else if (result === undefined) {
       replay = { status: 'missing' };
     } else {
@@ -453,7 +456,9 @@ void app.whenReady().then(() => {
     const wasInMatch = matches.phase === 'match';
     const endedStartMs = matchStartMs;
     const now = Date.now();
+    const seenThisMatch = seen - seenAtMatchStart;
     if (matches.onEvent(event)) {
+      seenAtMatchStart = seen;
       gameDetector = new ChestDetector(24000, settings.sensitivity); // forget anything half-heard in the lobby
       matchStartMs = now;
     }
@@ -462,7 +467,7 @@ void app.whenReady().then(() => {
     if (wasInMatch) {
       const heardThisMatch = history.last(1)[0] ?? 0;
       records.add({ endedMs: now, startMs: endedStartMs, chests: heardThisMatch, heard: heardThisMatch, fromReplay: false, counted: true });
-      void checkReplay(endedStartMs, now);
+      void checkReplay(endedStartMs, now, seenThisMatch);
     }
     saveCounts();
     push();

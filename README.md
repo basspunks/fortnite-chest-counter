@@ -124,7 +124,9 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
 
 Fortnite records a replay of every match. When a match ends, Chest Counter reads it with a small bundled program
 (`chest-replay.exe`) and takes the number of chests you opened, their kinds, the treasures you found and the chests
-your teammates opened near you. That number is final: it replaces whatever was counted live.
+your teammates opened near you. That number replaces whatever was counted live, with one exception: at busy
+moments Fortnite's replay recorder falls behind (its log says "Frames Over Budget") and loses who opened what, so a
+replay can miss a chest or two. When the screen saw more chests opened than the replay has, the screen's number stays.
 
 ### Live counting
 
@@ -139,7 +141,9 @@ How well each one does, checked on 4 recorded matches against their own replays 
 |---|---|---|---|
 | Reading the screen | 68 of 70 (97%) | 1 (about 1%) | The game in English, Windowed Fullscreen |
 | Sound | 47 of 70 (67%) | 3 (about 4%) | Windows 10 2004 or newer |
-| Replay, after the match | All of them (100%) | None | *Record Replays* on |
+| Replay, after the match | All of them (100%)* | None | *Record Replays* on |
+
+\* Unless Fortnite's replay recorder fell behind; the screen's count then stays (see [Exact count](#exact-count-replays)).
 
 Neither live way sees chests that were broken rather than opened, or the ones your teammates open. The replay counts
 those too.
