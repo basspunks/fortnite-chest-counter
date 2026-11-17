@@ -351,9 +351,13 @@ function showSound(state: ShownState): void {
 
   const paused = state.listening === 'on' && state.phase === 'lobby';
   const ear = state.listening === 'on' ? (paused ? 'wait' : 'on') : state.listening === 'waiting' ? 'wait' : 'off';
-  byId('ear').className = `ear ${ear === 'on' ? 'on' : 'off'}`; // the dot under 🎧: green while counting by sound, red otherwise
+  const reading = state.screenCount && state.screenStatus === 'on';
+  // the dot under 🎧: green while chests are counted by themselves (screen or sound), red otherwise
+  byId('ear').className = `ear ${ear === 'on' || reading ? 'on' : 'off'}`;
   setDot('sound-dot', ear);
-  byId('ear').title = paused ? 'In the lobby: not counting by sound' : ear === 'on' ? 'Counting by sound' : 'Not counting by sound';
+  byId('ear').title = reading
+    ? 'Counting from the screen (the sound is a backup)'
+    : paused ? 'In the lobby: not counting' : ear === 'on' ? 'Counting by sound' : 'Not counting';
   byId('sound-status').textContent =
     state.listening === 'off'
       ? 'Off. Count with your keys or controller.'
