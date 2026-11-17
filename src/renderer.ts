@@ -17,7 +17,7 @@ interface ShownState {
   readonly listening: string;
   readonly fortniteProblem: string;
   readonly heard: number;
-  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly reason?: string };
+  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly seen?: number; readonly reason?: string };
   readonly phase:'match' | 'lobby' | 'unknown';
   readonly history: { readonly last: readonly number[]; readonly average: number | null; readonly matches: number };
   readonly locked: boolean;
@@ -389,7 +389,9 @@ function showSound(state: ShownState): void {
   byId('replay-status').textContent = replay.status === 'checking'
       ? 'Reading the replay of the last match…'
       : replay.status === 'done'
-        ? `Last match: ${replay.chests} chests from the replay${replay.broken ? `, ${replay.broken} of them broken` : ''} (sound heard ${replay.heard}).`
+        ? (replay.seen ?? 0) > (replay.chests ?? 0)
+          ? `Last match: ${replay.seen} chests seen on screen, kept: the replay lost some and has only ${replay.chests}.`
+          : `Last match: ${replay.chests} chests from the replay${replay.broken ? `, ${replay.broken} of them broken` : ''} (seen on screen ${replay.seen ?? 0}, heard ${replay.heard}).`
         : replay.status === 'missing'
           ? 'No replay found. Turn on Record Replays in Fortnite.'
           : replay.status === 'skipped'
@@ -598,11 +600,17 @@ setInterval(() => {
 
 /** Five looks a second at the XP area right of the crosshair; the picture is looked at and dropped, never kept. */
 const SCREEN_EVERY_MS = 200;
+// Chromium has it, the DOM types not yet: hands over the stream's frames one by one.
+declare const MediaStreamTrackProcessor: new (init: { track: MediaStreamTrack }) => { readable: ReadableStream<VideoFrame> };
 let screenStream: MediaStream | undefined;
+let screenReader: ReadableStreamDefaultReader<VideoFrame> | undefined;
+let latestFrame: VideoFrame | undefined;
 let screenTimer: number | undefined;
 let screenStarting = false;
+let looking = false;
 let darkFrames = 0;
-const screenVideo = document.createElement('video');
+// only for a screen that is not 1080p: the area is scaled to 1080p size through these
+const nativeCanvas = document.createElement('canvas');
 const screenCanvas = document.createElement('canvas');
 const screenContext = screenCanvas.getContext('2d', { willReadFrequently: true })!;
 
@@ -616,11 +624,11 @@ async function startScreen(): Promise<void> {
   try {
     const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { max: 5 } }, audio: false });
     screenStream = stream;
-    screenVideo.muted = true;
-    screenVideo.srcObject = stream;
-    await screenVideo.play();
+    const reader = new MediaStreamTrackProcessor({ track: stream.getVideoTracks()[0]! }).readable.getReader();
+    screenReader = reader;
+    void keepLatestFrame(reader);
     darkFrames = 0;
-    screenTimer = window.setInterval(lookAtScreen, SCREEN_EVERY_MS);
+    screenTimer = window.setInterval(() => void lookAtScreen(), SCREEN_EVERY_MS);
     app.screenStatus('on');
   } catch (error) {
     app.screenStatus(error instanceof Error ? error.message : String(error));
@@ -629,29 +637,74 @@ async function startScreen(): Promise<void> {
   }
 }
 
+/** Keeps only the newest frame of the screen (the others are let go at once). */
+async function keepLatestFrame(reader: ReadableStreamDefaultReader<VideoFrame>): Promise<void> {
+  try {
+    for (;;) {
+      const { value, done } = await reader.read();
+      if (done) return;
+      if (reader !== screenReader) {
+        value.close();
+        return;
+      }
+      latestFrame?.close();
+      latestFrame = value;
+    }
+  } catch {
+    // stopped
+  }
+}
+
 function stopScreen(): void {
   window.clearInterval(screenTimer);
+  void screenReader?.cancel().catch(() => undefined);
+  screenReader = undefined;
+  latestFrame?.close();
+  latestFrame = undefined;
   screenStream?.getTracks().forEach((track) => track.stop());
   screenStream = undefined;
-  screenVideo.srcObject = null;
   app.screenStatus('off');
 }
 
-function lookAtScreen(): void {
-  const width = screenVideo.videoWidth;
-  const height = screenVideo.videoHeight;
-  const AREA = shown?.screenArea;
-  if (width === 0 || height === 0 || AREA === undefined) return;
-  if (screenCanvas.width !== AREA.width) screenCanvas.width = AREA.width; // setting it clears the canvas: only once
-  if (screenCanvas.height !== AREA.height) screenCanvas.height = AREA.height;
-  // the HUD scales with the screen's height: the area is given at 1080p
+/**
+ * The XP area's pixels at 1080p size. Only that small area is copied out of the frame (copying the whole screen out
+ * of the graphics card each time cost about three times more CPU).
+ */
+async function areaPixels(frame: VideoFrame, area: { left: number; top: number; width: number; height: number }): Promise<Uint8ClampedArray> {
+  const width = frame.displayWidth;
+  const height = frame.displayHeight;
+  // the HUD scales with the screen's height: the area is given at 1080p; the frame's colours come in pairs of pixels
   const scale = height / 1080;
-  screenContext.drawImage(
-    screenVideo,
-    width / 2 + AREA.left * scale, height / 2 + AREA.top * scale, AREA.width * scale, AREA.height * scale,
-    0, 0, AREA.width, AREA.height,
-  );
-  const pixels = screenContext.getImageData(0, 0, AREA.width, AREA.height).data;
+  const even = (n: number, most: number): number => Math.min(most, Math.max(0, Math.round(n / 2) * 2));
+  const x = even(width / 2 + area.left * scale, width - 2);
+  const y = even(height / 2 + area.top * scale, height - 2);
+  const rect = { x, y, width: even(area.width * scale, width - x), height: even(area.height * scale, height - y) };
+  const native = new Uint8ClampedArray(rect.width * rect.height * 4);
+  await frame.copyTo(native, { rect, format: 'RGBA' } as VideoFrameCopyToOptions);
+  if (rect.width === area.width && rect.height === area.height) return native;
+  if (nativeCanvas.width !== rect.width) nativeCanvas.width = rect.width; // setting a size clears the canvas: only on change
+  if (nativeCanvas.height !== rect.height) nativeCanvas.height = rect.height;
+  if (screenCanvas.width !== area.width) screenCanvas.width = area.width;
+  if (screenCanvas.height !== area.height) screenCanvas.height = area.height;
+  nativeCanvas.getContext('2d')!.putImageData(new ImageData(native, rect.width, rect.height), 0, 0);
+  screenContext.drawImage(nativeCanvas, 0, 0, area.width, area.height);
+  return screenContext.getImageData(0, 0, area.width, area.height).data;
+}
+
+async function lookAtScreen(): Promise<void> {
+  const AREA = shown?.screenArea;
+  if (looking || latestFrame === undefined || AREA === undefined) return;
+  looking = true;
+  const frame = latestFrame.clone(); // the newest may be let go while this one is copied
+  let pixels: Uint8ClampedArray;
+  try {
+    pixels = await areaPixels(frame, AREA);
+  } catch {
+    return;
+  } finally {
+    frame.close();
+    looking = false;
+  }
   // all black for a while: exclusive fullscreen, where Windows gives no picture of the game
   let lit = 0;
   for (let i = 0; i < pixels.length; i += 64) if (pixels[i]! + pixels[i + 1]! + pixels[i + 2]! > 30) lit++;
