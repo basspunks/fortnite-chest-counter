@@ -37,8 +37,8 @@
 
 > [!NOTE]
 > **Replays must be turned on** (*Settings → Game → Replays → Record Replays: On*). The exact count of each match comes
-> from its replay. Without replays, the counter only has the live count (screen and sound), which can miss a chest, so
-> the results will not be 100% accurate.
+> from its replay. Without replays, the counter only has the live count (about 97% by screen, 67% by sound), so the
+> results will not be 100% accurate.
 
 The exe is not code-signed yet, so Windows SmartScreen may say it "protected your PC" the first time.
 Click **More info → Run anyway**.
@@ -53,8 +53,10 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   matches and your average underneath.
 - **Click-through**: the mouse goes straight to the game. Only the settings button reacts when you point at it.
 - **Light on your FPS**: the bar has no running animations and is only redrawn when something on it changes. While
-  counting, the whole app uses about 1–3% of one CPU core, plus about 6% of one core in matches while it reads the
-  screen (well under 1% of a 6-core CPU).
+  counting, the whole app uses about 1–3% of one CPU core, plus at most about 6% of one core in matches while it
+  reads the screen (well under 1% of a 6-core CPU). Frames without any "+XP" text are skipped at once.
+- **Live count**: during the match, each chest you open is counted by reading the "+XP CHEST" text on screen (97% in
+  tests), with the sound as a backup. See [Live counting](#live-counting).
 - **Exact count after every match**: when a match ends, Fortnite's replay of it is read and its exact number of chests
   replaces the live count. Match, Session, Total and the history are corrected, and you see how many of the
   chests were broken rather than opened.
@@ -124,22 +126,43 @@ Fortnite records a replay of every match. When a match ends, Chest Counter reads
 (`chest-replay.exe`) and takes the number of chests you opened, their kinds, the treasures you found and the chests
 your teammates opened near you. That number is final: it replaces whatever was counted live.
 
-### Live count: the "+XP CHEST" text on screen
+### Live counting
+
+During a match the count goes up live, in one of two ways: by **reading the screen** or by **sound**. Both sit under
+one switch, *Settings → Counting → Live counting*, and each can be turned off on its own. When the screen can be read,
+it counts and the sound only waits as a backup, so a chest is never counted twice. Whatever was counted live, the
+replay replaces it with the exact number when the match ends.
+
+How well each one does, checked on 4 recorded matches against their own replays (70 chests opened):
+
+| | Chests found | False counts | Needs |
+|---|---|---|---|
+| Reading the screen | 68 of 70 (97%) | 1 (about 1%) | The game in English, Windowed Fullscreen |
+| Sound | 47 of 70 (67%) | 3 (about 4%) | Windows 10 2004 or newer |
+| Replay, after the match | All of them (100%) | None | *Record Replays* on |
+
+Neither live way sees chests that were broken rather than opened, or the ones your teammates open. The replay counts
+those too.
+
+#### Reading the screen
 
 When you open a chest, Fortnite shows "+600 XP" with the word **CHEST** under it, right of the crosshair. During
-matches, the counter looks at that small area five times a second and counts each new CHEST it reads there. Each look
-is dropped at once: nothing is recorded, saved or sent. It needs **Windowed Fullscreen** (in exclusive fullscreen
-Windows gives no picture of the game; the settings then say so and the sound counts instead). You can turn it off in
-*Settings → Counting*.
+matches, the counter looks at that small area five times a second and reads the word by its shape. Each look is
+dropped at once: nothing is recorded, saved or sent.
 
-Checked on 4 clips against the matches' own replays, it read 68 of the 70 chests opened, with 2 false alarms (the
-sound found 47). It cannot see chests that were broken rather than opened, or the ones your teammates open: the replay
-counts those after the match.
+Chests opened one after another are listed together under one "+XP": "RARE CHEST X2", then "SPRITE CHEST" under it,
+and so on. Every line is read, and an "X2" counts twice. Below, five chests opened in six seconds, all five counted:
 
-### Live count: sound (backup, in development)
+<p align="center">
+  <img src="docs/images/xp-list.jpg" alt="The XP list growing as five chests are opened one after another" />
+</p>
 
-While the screen is read, the sound no longer counts on its own; it counts when screen reading is off or cannot work.
+> [!NOTE]
+> **For now the screen is only read in English.** The counter looks for the English word CHEST, so with the game in
+> another language it finds nothing. Other languages will come in a later version. Until then, turn reading the
+> screen off (see below) and the sound counts instead.
 
+#### Sound (backup, in development)
 
 > **Counting by sound is still in development.** It is good enough to follow a match live, but it can miss a chest or
 > count one too many (a wall breaking near a chest, for example). This does not affect your totals: every match is
@@ -154,8 +177,8 @@ The detector learned from real matches: 13 recorded clips in which every sound t
 against the video (91 chest openings, and 60 look-alikes such as breaking boxes and walls, doors and shots). What
 tells them apart best is how long the hum was heard before: a chest hums the whole time you walk up to it.
 Tested on clips it had not learned from, it finds about 86% of the chests, against 68% for the first version (unreleased).
-It was then checked against 4 more clips, this time using the matches' own replays as the answer: it heard 48 of the
-63 chests opened there, with 2 false alarms. Still often missed: spirit chests (behind the vault doors), chests broken
+It was then checked against 4 more clips, this time using the matches' own replays as the answer: it heard 47 of the
+70 chests opened there, with 3 false alarms. Still often missed: spirit chests (behind the vault doors), chests broken
 rather than opened (they make no opening sound) and a chest opened right next to another one. The replay counts them
 all after the match.
 
@@ -180,6 +203,19 @@ Short clips were also checked one frame per second, to find chests the detector 
   <img src="docs/images/checked-frames-2.jpg" alt="One frame per second of a clip, seconds 30 to 53" />
   <img src="docs/images/checked-frames-3.jpg" alt="One frame per second of a clip in the storm, seconds 0 to 29" />
 </p>
+
+### When to turn what on or off
+
+All in *Settings → Counting*. By default everything is on, which suits most players.
+
+| Situation | What to do |
+|---|---|
+| The game is not in English | Turn **reading the screen** off. Otherwise nothing is counted live, as the screen reading finds nothing and the sound waits for it. |
+| You play in exclusive Fullscreen | Nothing: the counter sees it gets no picture of the game and the sound counts instead. Windowed Fullscreen is better. |
+| Stretched resolution or a changed HUD scale, and *Match* stays at 0 when you open chests | Turn **reading the screen** off. |
+| The sound counts chests you did not open | Turn **sound** off. |
+| You only care about the exact numbers, or want the lightest app possible | Turn **live counting** off. Each match is still counted from its replay when it ends. |
+| Replays are off in Fortnite | Keep **live counting** on: it is then the only count. |
 
 ## Is it safe?
 
