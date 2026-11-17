@@ -2,30 +2,45 @@ import { describe, expect, it } from 'vitest';
 
 import { ChestCounter } from '../src/counter';
 import { MatchHistory } from '../src/history';
-import { oldReplays, pickReplays, replayStartMs } from '../src/replays';
+import { nameStartMs, oldReplays, pickReplays, replayStartMs } from '../src/replays';
+
+/** A replay's name as Fortnite gives it: when it began recording, in local time. */
+function replayName(ms: number): string {
+  const d = new Date(ms);
+  const two = (n: number): string => String(n).padStart(2, '0');
+  return `UnsavedReplay-${d.getFullYear()}.${two(d.getMonth() + 1)}.${two(d.getDate())}-${two(d.getHours())}.${two(d.getMinutes())}.${two(d.getSeconds())}.replay`;
+}
 
 describe('pickReplays', () => {
   const start = Date.parse('2026-11-16T19:47:40Z');
   const end = start + 712_000;
   const files = [
-    { name: 'UnsavedReplay-2026.11.16-21.10.00.replay', modifiedMs: start - 3_600_000 }, // an older match
-    { name: 'UnsavedReplay-2026.11.16-22.47.43.replay', modifiedMs: end + 4_000 }, // this match, finished just after it ended
+    { name: replayName(start - 4_000_000), modifiedMs: start - 3_600_000 }, // an older match
+    { name: replayName(start + 3_000), modifiedMs: end + 4_000 }, // this match, finished just after it ended
     { name: 'notes.txt', modifiedMs: start + 800_000 },
   ];
 
   it('takes the replay written between the match start and shortly after its end', () => {
-    expect(pickReplays(files, start, end, new Set())).toEqual(['UnsavedReplay-2026.11.16-22.47.43.replay']);
+    expect(pickReplays(files, start, end, new Set())).toEqual([replayName(start + 3_000)]);
   });
 
   it('never takes a replay twice, nor one from an older match', () => {
-    expect(pickReplays(files, start, end, new Set(['UnsavedReplay-2026.11.16-22.47.43.replay']))).toEqual([]);
+    expect(pickReplays(files, start, end, new Set([replayName(start + 3_000)]))).toEqual([]);
   });
 
-  it('when the next match started without the lobby, offers both, newest first, and drops the next one once it has grown on', () => {
-    const next = { name: 'UnsavedReplay-2026.11.16-23.00.10.replay', modifiedMs: end + 30_000 };
-    expect(pickReplays([...files, next], start, end, new Set())).toEqual([next.name, 'UnsavedReplay-2026.11.16-22.47.43.replay']);
-    const later = { ...next, modifiedMs: end + 600_000 };
-    expect(pickReplays([...files, later], start, end, new Set())).toEqual(['UnsavedReplay-2026.11.16-22.47.43.replay']);
+  it('when the next match started without the lobby, leaves its replay out: its name says it began after this match', () => {
+    const next = { name: replayName(end + 38_000), modifiedMs: end + 30_000 };
+    expect(pickReplays([...files, next], start, end, new Set())).toEqual([replayName(start + 3_000)]);
+  });
+
+  it('still offers a replay saved under another name, newest first', () => {
+    const saved = { name: 'my best match.replay', modifiedMs: end + 30_000 };
+    expect(pickReplays([...files, saved], start, end, new Set())).toEqual([saved.name, replayName(start + 3_000)]);
+  });
+
+  it('reads when a replay began from its name', () => {
+    expect(nameStartMs('UnsavedReplay-2026.11.17-19.23.07.replay')).toBe(new Date(2026, 10, 17, 19, 23, 7).getTime());
+    expect(nameStartMs('my best match.replay')).toBeUndefined();
   });
 
   it('has nothing when replays are turned off', () => {

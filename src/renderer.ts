@@ -31,7 +31,7 @@ interface ShownState {
   /** Where the "+XP CHEST" text shows, at 1080p, from the screen's centre. */
   readonly screenArea: { readonly left: number; readonly top: number; readonly width: number; readonly height: number };
   readonly obsFile: string;
-  readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean };
+  readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean; readonly progress: number };
   readonly replayFiles: { readonly count: number; readonly megabytes: number; readonly old: number; readonly oldMegabytes: number };
   readonly openWithFortnite: boolean;
   readonly stats: ShownStats;
@@ -172,12 +172,14 @@ function show(state: ShownState): void {
   const { update } = state;
   byId('update-status').textContent =
     update.status === 'downloading'
-      ? `Downloading ${update.available}… the app restarts by itself.`
+      ? `Downloading ${update.available}… ${update.progress}%. The app restarts by itself.`
       : update.status === 'failed'
         ? 'The download failed. Try again later.'
         : update.available
           ? `Version ${update.available} is out (you have ${update.current}).`
           : `Chest Counter ${update.current} · up to date`;
+  byId('update-bar').hidden = update.status !== 'downloading';
+  byId('update-fill').style.width = `${update.progress}%`;
   const installButton = byId('install-update') as HTMLButtonElement;
   installButton.hidden = !update.available || !update.canInstall;
   installButton.disabled = update.status === 'downloading';
@@ -364,7 +366,7 @@ function showSound(state: ShownState): void {
   byId('ear').className = `ear ${ear === 'on' || reading ? 'on' : 'off'}`;
   setDot('sound-dot', ear);
   byId('ear').title = reading
-    ? 'Counting from the screen (the sound is a backup)'
+    ? 'Counting from the screen, and by sound what it missed'
     : paused ? 'In the lobby: not counting' : ear === 'on' ? 'Counting by sound' : 'Not counting';
   byId('sound-status').textContent =
     !state.liveCount

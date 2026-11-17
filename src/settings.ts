@@ -37,7 +37,7 @@ export interface Settings {
   readonly notifications: boolean;
   /** A cat with earphones on the bar instead of 🎧. */
   readonly cat: boolean;
-  /** Count chests from the "+XP CHEST" text on screen (the sound is then only a backup). */
+  /** Count chests from the "+XP CHEST" text on screen (the sound then counts only what the screen missed). */
   readonly screenCount: boolean;
   /** Count during matches at all (screen and sound); off, only the replays and your keys count. */
   readonly liveCount: boolean;

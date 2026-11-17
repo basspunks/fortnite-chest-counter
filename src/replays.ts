@@ -31,10 +31,19 @@ export function defaultReplayFolder(): string {
 /** A replay is finished a little after its match ends; the next match's replay keeps growing long after. */
 const FINISH_MS = 120_000;
 
+/** When Fortnite began recording a replay, from its own name ("UnsavedReplay-2026.11.17-19.23.07.replay", local time). */
+export function nameStartMs(name: string): number | undefined {
+  const parts = /^UnsavedReplay-(\d{4})\.(\d\d)\.(\d\d)-(\d\d)\.(\d\d)\.(\d\d)/i.exec(name);
+  if (!parts) return undefined;
+  const [year, month, day, hour, minute, second] = parts.slice(1).map(Number) as [number, number, number, number, number, number];
+  return new Date(year, month - 1, day, hour, minute, second).getTime();
+}
+
 /**
  * The replays that may be the match's, best first: written between its start and shortly after its end,
  * not used already. When a new match starts without passing the lobby, the new match's replay (still being written)
- * is also in that window at first, so the caller tries them in turn: an unfinished replay cannot be read.
+ * is in that window too: its name says it began after this match ended, so it is left out (reading it again and
+ * again while the next match is played cost CPU right then).
  */
 export function pickReplays(files: readonly ReplayFile[], matchStartMs: number, matchEndMs: number, used: ReadonlySet<string>): string[] {
   return files
@@ -43,6 +52,7 @@ export function pickReplays(files: readonly ReplayFile[], matchStartMs: number, 
         file.name.toLowerCase().endsWith('.replay') &&
         file.modifiedMs >= matchStartMs &&
         file.modifiedMs <= matchEndMs + FINISH_MS &&
+        !((nameStartMs(file.name) ?? -Infinity) >= matchEndMs) &&
         !used.has(file.name),
     )
     .sort((a, b) => b.modifiedMs - a.modifiedMs)

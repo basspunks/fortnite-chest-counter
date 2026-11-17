@@ -40,12 +40,27 @@ export async function newerRelease(current: string): Promise<Release | undefined
   }
 }
 
-/** Downloads the new exe next to nothing important (the temp folder) and returns its path. */
-export async function download(release: Release): Promise<string> {
+/**
+ * Downloads the new exe next to nothing important (the temp folder) and returns its path. `onProgress` hears how much
+ * of it has come (0–1) as it comes, when GitHub says how big it is.
+ */
+export async function download(release: Release, onProgress?: (done: number) => void): Promise<string> {
   const response = await fetch(release.url, { signal: AbortSignal.timeout(10 * 60_000) });
-  if (!response.ok) throw new Error(`download failed (${response.status})`);
+  if (!response.ok || response.body === null) throw new Error(`download failed (${response.status})`);
+  const size = Number(response.headers.get('content-length')) || 0;
+  const parts: Uint8Array[] = [];
+  let received = 0;
+  const reader = response.body.getReader();
+  for (;;) {
+    const { value, done } = await reader.read();
+    if (done) break;
+    parts.push(value);
+    received += value.length;
+    if (size > 0) onProgress?.(Math.min(1, received / size));
+  }
+  if (size > 0 && received !== size) throw new Error('download cut short');
   const file = join(tmpdir(), `ChestCounter-${release.version}.exe`);
-  writeFileSync(file, Buffer.from(await response.arrayBuffer()));
+  writeFileSync(file, Buffer.concat(parts));
   return file;
 }
 

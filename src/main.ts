@@ -74,7 +74,7 @@ export interface AppState {
   readonly seen: number;
   readonly screenArea: typeof AREA;
   /** This version, and a newer one on GitHub if there is one. */
-  readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean };
+  readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean; readonly progress: number };
   /** Where the page for OBS is written. */
   readonly obsFile: string;
   /** Replays on disk, and the older ones that may be moved to the Recycle Bin. */
@@ -143,6 +143,7 @@ app.setPath('userData', join(app.getPath('appData'), 'chest-counter'));
 const runningExe = process.env['PORTABLE_EXECUTABLE_FILE'];
 let newer: Release | undefined;
 let updateStatus: 'idle' | 'downloading' | 'failed' = 'idle';
+let updatePercent = 0; // of the download, while downloading
 
 // A second copy could not get the shortcuts and would keep its own total: only one may run.
 if (selfCheck === undefined && !app.requestSingleInstanceLock()) {
@@ -250,7 +251,7 @@ void app.whenReady().then(() => {
     screenStatus,
     seen,
     screenArea: AREA,
-    update: { current: app.getVersion(), available: newer?.version ?? null, status: updateStatus, canInstall: runningExe !== undefined },
+    update: { current: app.getVersion(), available: newer?.version ?? null, status: updateStatus, canInstall: runningExe !== undefined, progress: updatePercent },
     obsFile: dataFile('overlay.html'),
     replayFiles: (() => {
       const all = replays.files().filter((file) => file.name.toLowerCase().endsWith('.replay'));
@@ -355,17 +356,26 @@ void app.whenReady().then(() => {
     if (matches.phase === 'lobby') return; // lobby music, not a chest
     audioCheck.heardAt.push(Math.round(at * 10) / 10);
     heard++;
-    // while the screen is read, its "+XP CHEST" text counts (68 of 70 chests in tests, against 47 by sound)
-    if (readingScreen()) {
-      push();
+    if (!readingScreen()) {
+      run('add', 'sound');
       return;
     }
-    run('add', 'sound');
+    // While the screen is read, its "+XP CHEST" text counts first. The sound counts a chest only if the screen saw
+    // none from 1 s before to 3 s after it (the text shows about a second after the sound): 73 of 87 chests in tests,
+    // against 68 by screen alone and 51 by sound alone.
+    push();
+    const heardMs = Date.now();
+    setTimeout(() => {
+      const seenNear = seenAtMs.some((ms) => ms >= heardMs - SOUND_AFTER_SCREEN.beforeMs && ms <= heardMs + SOUND_AFTER_SCREEN.afterMs);
+      if (!seenNear && readingScreen() && matches.phase !== 'lobby') run('add', 'sound');
+    }, SOUND_AFTER_SCREEN.afterMs);
   };
 
   // The window reads the "+XP CHEST" text off the screen during matches (src/chest-text.ts) and says when it sees it.
   let screenStatus = 'off';
   let seen = 0;
+  const seenAtMs: number[] = []; // when the last chests were seen on screen
+  const SOUND_AFTER_SCREEN = { beforeMs: 1000, afterMs: 3000 } as const;
   const readingScreen = (): boolean => settings.liveCount && settings.screenCount && screenStatus === 'on';
   ipcMain.on('screen-status', (_event, status: unknown) => {
     if (typeof status !== 'string' || status === screenStatus) return;
@@ -380,6 +390,8 @@ void app.whenReady().then(() => {
     const shown = chestsShown(textMask(pixels, AREA.width, AREA.height), AREA.width, AREA.height);
     for (let opened = textWatcher.push(shown, Date.now()); opened > 0; opened--) {
       seen++;
+      seenAtMs.push(Date.now());
+      if (seenAtMs.length > 20) seenAtMs.shift(); // only the last few seconds matter
       run('add', 'screen');
     }
   });
@@ -681,8 +693,15 @@ void app.whenReady().then(() => {
   ipcMain.on('install-update', () => {
     if (newer === undefined || runningExe === undefined || updateStatus === 'downloading') return;
     updateStatus = 'downloading';
+    updatePercent = 0;
     push();
-    download(newer)
+    download(newer, (done) => {
+      // the window is told only when the whole percent changes, not for every piece that arrives
+      const percent = Math.floor(done * 100);
+      if (percent === updatePercent) return;
+      updatePercent = percent;
+      push();
+    })
       .then((file) => {
         replaceAndRestart(file, runningExe);
         app.quit();

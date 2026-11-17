@@ -986,3 +986,22 @@ code.path {
   opacity: 0.45;
   pointer-events: none;
 }
+
+/* how much of an update has downloaded */
+.update-bar {
+  height: 6px;
+  border-radius: 3px;
+  background: var(--field);
+  overflow: hidden;
+}
+
+.update-bar[hidden] {
+  display: none;
+}
+
+.update-fill {
+  width: 0;
+  height: 100%;
+  border-radius: 3px;
+  background: var(--gold);
+}

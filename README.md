@@ -37,8 +37,13 @@
 
 > [!NOTE]
 > **Replays must be turned on** (*Settings → Game → Replays → Record Replays: On*). The exact count of each match comes
-> from its replay. Without replays, the counter only has the live count (about 97% by screen, 67% by sound), so the
-> results will not be 100% accurate.
+> from its replay. Without replays, the counter only has the live count (about 84% of all chests, broken ones
+> included), so the results will not be 100% accurate.
+
+> [!TIP]
+> **FPS problems?** Fortnite's replay recording itself can make the game stutter: its own log often says it ran over
+> its time budget. If you notice that, turn **Record Replays off** and use only the live count. You lose the exact
+> count after each match, nothing else.
 
 The exe is not code-signed yet, so Windows SmartScreen may say it "protected your PC" the first time.
 Click **More info → Run anyway**.
@@ -56,7 +61,7 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   counting, the whole app uses about 1–3% of one CPU core, plus at most about 6% of one core in matches while it
   reads the screen (well under 1% of a 6-core CPU). Frames without any "+XP" text are skipped at once.
 - **Live count**: during the match, each chest you open is counted by reading the "+XP CHEST" text on screen (97% in
-  tests), with the sound as a backup. See [Live counting](#live-counting).
+  tests), and the sound counts what the screen missed (84% of all chests together). See [Live counting](#live-counting).
 - **Exact count after every match**: when a match ends, Fortnite's replay of it is read and its exact number of chests
   replaces the live count. Match, Session, Total and the history are corrected, and you see how many of the
   chests were broken rather than opened.
@@ -130,23 +135,25 @@ replay can miss a chest or two. When the screen saw more chests opened than the 
 
 ### Live counting
 
-During a match the count goes up live, in one of two ways: by **reading the screen** or by **sound**. Both sit under
-one switch, *Settings → Counting → Live counting*, and each can be turned off on its own. When the screen can be read,
-it counts and the sound only waits as a backup, so a chest is never counted twice. Whatever was counted live, the
-replay replaces it with the exact number when the match ends.
+During a match the count goes up live, by **reading the screen** and by **sound**. Both sit under one switch,
+*Settings → Counting → Live counting*, and each can be turned off on its own. The screen counts first. The sound counts
+a chest only when the screen saw none from 1 second before to 3 seconds after it, so a chest is never counted twice,
+and the sound still catches what the screen missed. Whatever was counted live, the replay replaces it with the exact
+number when the match ends.
 
-How well each one does, checked on 4 recorded matches against their own replays (70 chests opened):
+How well each one does, checked on 4 recorded matches against their own replays (87 chests: 70 opened, 17 broken):
 
 | | Chests found | False counts | Needs |
 |---|---|---|---|
-| Reading the screen | 68 of 70 (97%) | 1 (about 1%) | The game in English, Windowed Fullscreen |
-| Sound | 47 of 70 (67%) | 3 (about 4%) | Windows 10 2004 or newer |
+| Reading the screen | 68 of 87 (78%); of the opened ones 68 of 70 (97%) | 1 | The game in English, Windowed Fullscreen |
+| Sound | 51 of 87 (59%) | 3 | Windows 10 2004 or newer |
+| **Screen and sound together** (the default) | **73 of 87 (84%)** | 2 | |
 | Replay, after the match | All of them (100%)* | None | *Record Replays* on |
 
 \* Unless Fortnite's replay recorder fell behind; the screen's count then stays (see [Exact count](#exact-count-replays)).
 
-Neither live way sees chests that were broken rather than opened, or the ones your teammates open. The replay counts
-those too.
+The screen never sees chests that were broken rather than opened (they give no "+XP CHEST"), and neither way counts
+the ones your teammates open. The replay counts those too.
 
 #### Reading the screen
 
@@ -166,7 +173,7 @@ and so on. Every line is read, and an "X2" counts twice. Below, five chests open
 > another language it finds nothing. Other languages will come in a later version. Until then, turn reading the
 > screen off (see below) and the sound counts instead.
 
-#### Sound (backup, in development)
+#### Sound (for what the screen missed, in development)
 
 > **Counting by sound is still in development.** It is good enough to follow a match live, but it can miss a chest or
 > count one too many (a wall breaking near a chest, for example). This does not affect your totals: every match is
@@ -214,11 +221,12 @@ All in *Settings → Counting*. By default everything is on, which suits most pl
 
 | Situation | What to do |
 |---|---|
-| The game is not in English | Turn **reading the screen** off. Otherwise nothing is counted live, as the screen reading finds nothing and the sound waits for it. |
+| The game is not in English | Turn **reading the screen** off. It finds nothing, so only the sound counts anyway, just 3 seconds late. |
 | You play in exclusive Fullscreen | Nothing: the counter sees it gets no picture of the game and the sound counts instead. Windowed Fullscreen is better. |
 | Stretched resolution or a changed HUD scale, and *Match* stays at 0 when you open chests | Turn **reading the screen** off. |
 | The sound counts chests you did not open | Turn **sound** off. |
-| You only care about the exact numbers, or want the lightest app possible | Turn **live counting** off. Each match is still counted from its replay when it ends. |
+| The game stutters or your FPS drops | First turn **Record Replays off** in Fortnite and keep live counting on: the replay recording is the heaviest part. If it still stutters, turn **reading the screen** off too: while the screen is read, Windows has to compose every frame of the game. |
+| You only care about the exact numbers | Turn **live counting** off. Each match is still counted from its replay when it ends. |
 | Replays are off in Fortnite | Keep **live counting** on: it is then the only count. |
 
 ## Is it safe?

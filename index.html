@@ -61,7 +61,7 @@
             <h3>Live counting</h3>
             <input id="live-count" type="checkbox" class="switch" />
           </label>
-          <p class="hint">Counts chests during the match, by screen or by sound. Off: only the replay counts, after each match, and your keys.</p>
+          <p class="hint">Counts chests during the match: the screen first, the sound for what the screen missed. Off: only the replay counts, after each match, and your keys.</p>
           <div id="live-ways" class="live-ways">
           <label class="row switch-row">
             <span>Count by reading "+XP CHEST" on screen</span>
@@ -82,7 +82,7 @@
         <div class="card">
           <h3>Replays</h3>
           <p class="status"><span id="replay-dot" class="dot"></span><span id="replay-status"></span></p>
-          <p class="hint">During a match the sound counts live. When it ends, the exact count from Fortnite's replay replaces it. Required: Fortnite → Settings → Game → Replays → Record Replays: On.</p>
+          <p class="hint">When a match ends, the exact count from Fortnite's replay replaces the live one. Needs Fortnite → Settings → Game → Replays → Record Replays: On. FPS problems? Turn Record Replays off: the replay recording can make the game stutter, and the live count still works without it.</p>
           <div class="row replay-files">
             <span id="replay-files" class="hint"></span>
             <button id="clean-replays">Clean up…</button>
@@ -178,6 +178,7 @@
             <span id="update-status" class="hint"></span>
             <button id="install-update" hidden>Update</button>
           </div>
+          <div id="update-bar" class="update-bar" hidden><div id="update-fill" class="update-fill"></div></div>
         </div>
 
         <button id="reset" class="quiet">Reset all settings</button>
