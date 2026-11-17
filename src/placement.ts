@@ -11,14 +11,26 @@ export interface Point {
 }
 
 /**
- * Right under Fortnite's minimap, lined up with the right edge of the screen.
- * Given as parts of the screen size, so it fits any resolution: on 1920 × 1080 it is 12 px from the right, 178 px from the top.
+ * In the middle at the top, right under Fortnite's compass (it reaches about 55 px down at 1080p, the distances to the
+ * map markers included). Given as parts of the screen size, so it fits any resolution: 63 px from the top at 1080p.
  */
 export function defaultPlace(screen: Box, width: number): Point {
   return {
-    x: Math.round(screen.x + screen.width - width - screen.width * 0.00625),
-    y: Math.round(screen.y + screen.height * 0.165),
+    x: Math.round(screen.x + (screen.width - width) / 2),
+    y: Math.round(screen.y + screen.height * 0.058),
   };
+}
+
+/**
+ * Where a window of a new width goes so it stays where the player put it: a centred one keeps its centre, one on the
+ * right half its right edge (under the minimap), one on the left half its left edge. Kept inside the screen.
+ */
+export function keepSide(from: Box, width: number, screen: Box): number {
+  const centre = from.x + from.width / 2;
+  const middle = screen.x + screen.width / 2;
+  const x =
+    Math.abs(centre - middle) <= screen.width * 0.05 ? centre - width / 2 : centre > middle ? from.x + from.width - width : from.x;
+  return Math.round(Math.min(Math.max(screen.x, x), screen.x + screen.width - width));
 }
 
 /** A saved position, if the window would still be fully on one of the screens (a monitor may have been unplugged). */
@@ -33,11 +45,10 @@ export function savedPlace(saved: unknown, screens: readonly Box[], width: numbe
 }
 
 /**
- * Where a window of the new size goes so its top-right corner stays put (the counter sits on the right edge,
- * so settings grow to the left and down), pushed back inside the screen if it would stick out.
+ * Where the settings go when the bar opens them: from the bar's top, on the bar's side (see keepSide), and down;
+ * pushed back inside the screen if they would stick out.
  */
 export function grow(from: Box, width: number, height: number, screen: Box): Point {
-  const x = Math.min(Math.max(screen.x, from.x + from.width - width), screen.x + screen.width - width);
   const y = Math.min(Math.max(screen.y, from.y), screen.y + screen.height - height);
-  return { x, y };
+  return { x: keepSide(from, width, screen), y };
 }

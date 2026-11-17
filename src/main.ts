@@ -18,7 +18,7 @@ import { obsPage } from './obs';
 import { download, newerRelease, replaceAndRestart, type Release } from './updater';
 import { appFile } from './paths';
 import { ChordWatcher, chordLabel } from './pad';
-import { defaultPlace, grow, savedPlace } from './placement';
+import { defaultPlace, grow, keepSide, savedPlace } from './placement';
 import { ACTIONS, DEFAULT_SETTINGS, isAction, isTheme, readSettings, THEMES, withKey, withOpacity, withPad, type Action, type Settings } from './settings';
 
 type View = 'counter' | 'settings';
@@ -631,7 +631,7 @@ void app.whenReady().then(() => {
       { label: 'Settings', click: () => show('settings') },
       { label: 'Lock position', type: 'checkbox', checked: locked, click: (item) => setLocked(item.checked) },
       {
-        label: 'Put counter back under the minimap',
+        label: 'Put the counter back at the top',
         click: () => {
           if (view === 'settings') show('counter');
           window.setPosition(...(Object.values(defaultPlace(screen.getPrimaryDisplay().bounds, BAR_WIDTH)) as [number, number]));
@@ -767,8 +767,9 @@ void app.whenReady().then(() => {
     if (typeof wanted !== 'number' || !Number.isFinite(wanted)) return;
     const width = Math.round(Math.min(900, Math.max(300, wanted)));
     if (width === barWidth) return;
-    if (view === 'counter') barAt = { x: window.getBounds().x + window.getBounds().width - width, y: window.getBounds().y };
-    else barAt = { x: barAt.x + barWidth - width, y: barAt.y };
+    // the bar stays where it was put: centred, or on the edge of its side
+    const bar = view === 'counter' ? window.getBounds() : { ...barAt, width: barWidth, height: barHeight() };
+    barAt = { x: keepSide(bar, width, screen.getDisplayMatching(bar).bounds), y: bar.y };
     barWidth = width;
     if (view === 'counter') resize();
     writeFileSync(dataFile('position.json'), JSON.stringify({ ...barAt, locked }));

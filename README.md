@@ -29,8 +29,8 @@
 ## Download
 
 1. Download **ChestCounter.exe** from the [latest release](https://github.com/basspunks/fortnite-chest-counter/releases/latest).
-2. Double-click it. There is no installer: the counter appears under the minimap and a small icon appears next to
-   the clock.
+2. Double-click it. There is no installer: the counter appears at the top of the screen, under the compass, and a
+   small icon appears next to the clock. Unlock it in the settings to put it anywhere, under the minimap for example.
 3. In Fortnite, turn on **Settings → Game → Replays → Record Replays** (needed for the exact count).
 4. Play in **Windowed Fullscreen** (*Settings → Video → Window Mode*). In exclusive fullscreen, Windows cannot draw
    anything over the game.
@@ -54,8 +54,8 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
 
 ### The counter
 
-- **HUD-style bar** under the minimap: Match, Session and Total, outlined like the game's own numbers, with your last
-  matches and your average underneath.
+- **HUD-style bar** at the top of the screen (or anywhere you drag it): Match, Session and Total, outlined like the
+  game's own numbers, with your last matches and your average underneath.
 - **Click-through**: the mouse goes straight to the game. Only the settings button reacts when you point at it.
 - **Light on your FPS**: the bar has no running animations and is only redrawn when something on it changes. While
   counting, the whole app uses about 1–3% of one CPU core, plus at most about 6% of one core in matches while it
