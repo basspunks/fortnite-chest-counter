@@ -1,6 +1,6 @@
 {
   "name": "chest-counter",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "private": true,
   "description": "Fortnite chest counter overlay: live counting by sound, exact count from replays, treasure hunt stats (unofficial fan tool)",
   "author": "basspunks",
