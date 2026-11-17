@@ -49,23 +49,30 @@ export async function download(release: Release): Promise<string> {
   return file;
 }
 
+/** A path as a PowerShell string (single quotes, any quote inside doubled). */
+const quoted = (path: string): string => `'${path.replace(/'/g, "''")}'`;
+
 /**
  * Swaps the running exe for the downloaded one and starts it again. The exe cannot be replaced while it runs, so a
- * small script waits until the app has closed, copies the new file over the old one and starts it; the caller quits.
+ * PowerShell script waits until the app has closed (trying for up to a minute), copies the new file over the old one
+ * and starts it; the caller quits. A cmd script did this before and flashed a console window several times.
+ * wscript starts PowerShell with no window at all, and unlike PowerShell started straight from here it outlives the app.
  */
 export function replaceAndRestart(downloaded: string, runningExe: string): void {
-  const script = join(tmpdir(), 'chest-counter-update.cmd');
-  writeFileSync(
-    script,
-    [
-      '@echo off',
-      ':retry',
-      'timeout /t 1 /nobreak >nul',
-      `copy /y "${downloaded}" "${runningExe}" >nul 2>&1 || goto retry`,
-      `del "${downloaded}" >nul 2>&1`,
-      `start "" "${runningExe}"`,
-      'del "%~f0"',
-    ].join('\r\n'),
-  );
-  spawn('cmd.exe', ['/c', script], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
+  const ps1 = join(tmpdir(), 'ChestCounter-update.ps1');
+  const vbs = join(tmpdir(), 'ChestCounter-update.vbs');
+  const script = [
+    `$from = ${quoted(downloaded)}`,
+    `$to = ${quoted(runningExe)}`,
+    'for ($i = 0; $i -lt 60; $i++) { try { Copy-Item -LiteralPath $from -Destination $to -Force -ErrorAction Stop; break } catch { Start-Sleep -Seconds 1 } }',
+    'Remove-Item -LiteralPath $from -ErrorAction SilentlyContinue',
+    `Remove-Item -LiteralPath ${quoted(vbs)} -ErrorAction SilentlyContinue`,
+    'Start-Process -FilePath $to',
+    'Remove-Item -LiteralPath $PSCommandPath -ErrorAction SilentlyContinue',
+  ].join('\r\n');
+  // a BOM in each, so a path with letters like ş or ü reads right (PowerShell 5 and wscript assume ANSI otherwise)
+  writeFileSync(ps1, `﻿${script}`, 'utf8');
+  const command = `powershell.exe -NoProfile -NonInteractive -ExecutionPolicy Bypass -WindowStyle Hidden -File ""${ps1}""`;
+  writeFileSync(vbs, `﻿CreateObject("WScript.Shell").Run "${command}", 0, False\r\n`, 'utf16le');
+  spawn('wscript.exe', ['//B', '//Nologo', vbs], { detached: true, stdio: 'ignore', windowsHide: true }).unref();
 }
