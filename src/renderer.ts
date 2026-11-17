@@ -113,7 +113,9 @@ const byId = (id: string): HTMLElement => document.getElementById(id)!;
 const input = (id: string): HTMLInputElement => byId(id) as HTMLInputElement;
 const buttons = (attribute: string): HTMLButtonElement[] => [...document.querySelectorAll<HTMLButtonElement>(`[data-${attribute}]`)];
 const setDot = (id: string, kind: 'on' | 'wait' | 'bad' | 'off'): void => {
-  byId(id).className = `dot ${kind === 'off' ? '' : kind}`;
+  const dot = byId(id);
+  dot.className = `dot ${kind === 'off' ? '' : kind}`;
+  dot.parentElement!.dataset['state'] = kind; // the status line around the dot takes its colour
 };
 /** A small element with text, for building lines without HTML strings. */
 const part = (text: string, className = '', tag = 'span'): HTMLElement => {
@@ -122,6 +124,21 @@ const part = (text: string, className = '', tag = 'span'): HTMLElement => {
   element.className = className;
   return element;
 };
+/** One of the icons drawn in index.html (<symbol id="i-…">). */
+const icon = (name: string): SVGSVGElement => {
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+  svg.classList.add('i');
+  const use = document.createElementNS('http://www.w3.org/2000/svg', 'use');
+  use.setAttribute('href', `#i-${name}`);
+  svg.append(use);
+  return svg;
+};
+/** A slider's track is coloured up to its knob. */
+const fill = (slider: HTMLInputElement): void => {
+  const share = (Number(slider.value) - Number(slider.min)) / (Number(slider.max) - Number(slider.min));
+  slider.style.setProperty('--fill', `${Math.round(share * 100)}%`);
+};
+const formatNumber = (n: number): string => n.toLocaleString('en-US');
 
 let shown: ShownState | undefined;
 
@@ -148,6 +165,7 @@ function show(state: ShownState): void {
   fitBar();
 
   input('opacity').value = String(Math.round(state.opacity * 100));
+  fill(input('opacity'));
   byId('opacity-value').textContent = state.opacity === 0 ? 'None' : `${Math.round(state.opacity * 100)} %`;
   input('show-history').checked = state.showHistory;
   input('cat').checked = state.cat;
@@ -159,17 +177,19 @@ function show(state: ShownState): void {
   input('screen-count').checked = state.screenCount;
   readScreen(state.liveCount && state.screenCount && state.phase === 'match');
   byId('screen-status').textContent =
-    !state.liveCount ? 'Off: live counting is off.'
-    : !state.screenCount ? 'Off: chests are counted by sound.'
+    !state.liveCount ? 'Off (live counting is off)'
+    : !state.screenCount ? (state.autoCount ? 'Off: the sound counts alone' : 'Off: count with your keys or controller')
       : state.screenStatus === 'on' ? `Reading the screen · ${state.seen} seen`
-        : state.phase !== 'match' ? 'Reads the screen during matches only.'
-          : `Cannot read the screen: ${state.screenStatus}. Counting by sound.`;
+        : state.phase !== 'match' ? 'Starts with the next match'
+          : `Cannot read the screen: ${state.screenStatus}`;
   setDot('screen-dot', !state.liveCount || !state.screenCount ? 'off' : state.screenStatus === 'on' ? 'on' : state.phase !== 'match' ? 'wait' : 'bad');
+  showLivePill(state);
   input('open-with-fortnite').checked = state.openWithFortnite;
   input('only-hunt').checked = state.onlyHuntMatches;
   input('notifications').checked = state.notifications;
   byId('obs-file').textContent = state.obsFile;
   const { update } = state;
+  byId('app-version').textContent = `v${update.current}`;
   byId('update-status').textContent =
     update.status === 'downloading'
       ? `Downloading ${update.available}… ${update.progress}%. The app restarts by itself.`
@@ -196,14 +216,37 @@ function showHistory(state: ShownState): void {
   const { last, average } = state.history;
   const avg = part('', 'avg');
   if (average !== null) avg.append(part('Avg ', 'label'), part(average.toFixed(1), '', 'b'));
-  byId('history-line').replaceChildren(part('Last', 'label'), part(last.length === 0 ? 'no matches yet' : last.join(' · ')), avg);
+  // the newest match first, a little brighter
+  const matches = part(last.length === 0 ? 'no matches yet' : '');
+  last.forEach((chests, index) => matches.append(...(index > 0 ? [' · '] : []), part(String(chests), index === 0 ? 'newest' : '')));
+  byId('history-line').replaceChildren(part('Last', 'label'), matches, avg);
+}
 
+/** At the top of the settings: whether chests are being counted right now. */
+function showLivePill(state: ShownState): void {
+  const reading = state.screenCount && state.screenStatus === 'on';
+  const listening = state.autoCount && state.listening === 'on';
+  const counting = state.liveCount && state.phase === 'match' && (reading || listening);
+  const pill = byId('live-pill');
+  pill.textContent = !state.liveCount ? 'Live off' : counting ? 'Live' : state.phase === 'match' ? 'Not counting' : state.phase === 'lobby' ? 'Lobby' : 'Waiting';
+  pill.title = !state.liveCount ? 'Live counting is off' : counting ? 'Counting chests in this match' : state.phase === 'lobby' ? 'In the lobby: nothing is counted' : '';
+  pill.className = `pill ${!state.liveCount ? '' : counting ? 'on' : 'wait'}`;
 }
 
 /** Tells the app how wide the bar must be for its numbers: the widths of what is shown, the gaps and the padding. */
 let askedWidth = 0;
 function fitBar(): void {
   if (document.body.dataset['view'] !== 'counter') return;
+  // measured with the icons beside the numbers (not pushed to the right edge), then put back: nothing is drawn between
+  byId('counter').classList.add('measuring');
+  try {
+    measureBar();
+  } finally {
+    byId('counter').classList.remove('measuring');
+  }
+}
+
+function measureBar(): void {
   const numbers = byId('counter').querySelector('.numbers') as HTMLElement;
   const cells = [...numbers.querySelectorAll<HTMLElement>(':scope > *, :scope > .stat > *')].filter((cell) => cell.offsetWidth > 0 && cell.id !== 'pops');
   const numbersWidth = Math.max(...cells.map((cell) => cell.getBoundingClientRect().right)) - numbers.getBoundingClientRect().left;
@@ -234,7 +277,7 @@ function fitBar(): void {
 
 /** "Chests opened by squad": never exact, so it says "about" and explains why on hover. */
 function squadRow(squad: number, teammates: number): HTMLElement {
-  const line = row('Chests opened by squad (approx.)', `≈ ${squad.toLocaleString('en-US')}`);
+  const line = row('Chests opened by squad (approx.)', `≈ ${formatNumber(squad)}`);
   line.title =
     `Your chests in counted matches + ${teammates} opened by teammates, as far as your replays recorded them. ` +
     'A teammate more than about 150 m away from you is not in your replays, so the real number is usually higher.';
@@ -268,7 +311,11 @@ function tiles(prizes: readonly { id: string; name: string; kind: string; found:
       }, { once: false });
     }
     tile.append(picture, part(prize.name, 'name'), part(KIND_SHORT[prize.kind] ?? prize.kind, 'kind'));
-    if (prize.found || prize.ticked) tile.append(part('✓', 'check'));
+    if (prize.found || prize.ticked) {
+      const check = part('', 'check');
+      check.append(icon('check'));
+      tile.append(check);
+    }
     if (!prize.found) tile.addEventListener('click', () => app.tickPrize(prize.id));
     grid.append(tile);
   }
@@ -290,67 +337,137 @@ const row = (label: string, value: string, className = ''): HTMLElement => {
   return line;
 };
 const KIND_LABELS: Readonly<Record<string, string>> = { normal: 'Normal', rare: 'Rare', buried: 'Buried', spirit: 'Spirit (rare)', poster: 'Spirit posters', other: 'Other' };
+/** Each kind of chest in a colour of its own, the same in every theme. */
+const KIND_COLOURS: Readonly<Record<string, string>> = { normal: '#d9d4c7', rare: '#5aa9ff', spirit: '#b57bff', poster: '#ff7ac6', buried: '#c99a5b', other: '#7c8494' };
+
+/** A big number of the report, with its name, an icon and a line under it. */
+function kpi(name: string, iconName: string, value: string, below: string, main = false): HTMLElement {
+  const tile = part('', `kpi${main ? ' main' : ''}`, 'div');
+  const label = part('', 'k-label');
+  label.append(icon(iconName), name);
+  tile.append(label, part(value, '', 'b'), part(below, 'k-sub'));
+  return tile;
+}
+
+/** The chests of the last 7 days, oldest on the left, a column each (days without matches stay low and grey). */
+function lastDays(perDay: readonly (readonly [string, number])[]): HTMLElement[] {
+  if (perDay.length === 0) return [];
+  const byDay = new Map(perDay);
+  const days = Array.from({ length: 7 }, (_, back) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - back));
+    return { date, chests: byDay.get(date.toLocaleDateString('en-CA')) ?? 0 };
+  });
+  const most = Math.max(1, ...days.map((d) => d.chests));
+  const columns = part('', 'columns', 'div');
+  days.forEach(({ date, chests }, index) => {
+    const day = part('', `day${chests === 0 ? ' none' : ''}${index === 6 ? ' today' : ''}`, 'div');
+    const column = part('', 'column', 'div');
+    column.style.setProperty('--h', `${Math.round((chests / most) * 100)}%`);
+    day.title = `${date.toLocaleDateString(undefined, { weekday: 'long', day: 'numeric', month: 'short' })}: ${chests} chests`;
+    day.append(part(String(chests), '', 'b'), column, part(index === 6 ? 'Today' : date.toLocaleDateString('en-US', { weekday: 'short' })));
+    columns.append(day);
+  });
+  return [part('Last 7 days', 'sub', 'div'), columns];
+}
 
 function showStats(state: ShownState): void {
   const { stats } = state;
   const now = Date.now();
-  byId('week-title').textContent = stats.week ? `Week ${stats.week.number} · ${stats.week.title}` : 'Treasure hunt';
+  byId('week-chip').textContent = stats.week ? `Week ${stats.week.number}` : '';
+  byId('week-title').textContent = stats.week ? stats.week.title : 'Treasure hunt';
   // times in the player's own time zone and clock style (whatever Windows is set to)
   const when = (ms: number): string => new Date(ms).toLocaleString(undefined, { weekday: 'short', hour: 'numeric', minute: '2-digit' });
-  byId('week-ends').textContent = stats.week ? `New prizes ${when(stats.week.endMs)} (in ${dhm(stats.week.endMs - now)}).` : 'No treasure week right now.';
+  byId('week-ends').replaceChildren(icon('clock'), stats.week ? `New prizes ${when(stats.week.endMs)} · in ${dhm(stats.week.endMs - now)}` : 'No treasure week right now.');
   const hour = stats.hour;
-  const boosts = hour ? Object.entries(hour.boosts).map(([kind, times]) => `${kind} ×${times}`).join(', ') : '';
-  byId('hour-banner').textContent = !hour
-    ? ''
-    : hour.startMs <= now
-      ? `⚡ Treasure Hour now, until ${when(hour.endMs)} (${dhm(hour.endMs - now)} left) · ${boosts}`
-      : `Next Treasure Hour ${when(hour.startMs)} (in ${dhm(hour.startMs - now)}) · ${boosts}`;
-  byId('hour-banner').classList.toggle('on', !!hour && hour.startMs <= now);
+  const banner = byId('hour-banner');
+  if (!hour) {
+    banner.replaceChildren();
+  } else {
+    const live = hour.startMs <= now;
+    const head = part('', 'when', 'div');
+    head.append(icon('bolt'), live ? `Treasure Hour now · ${dhm(hour.endMs - now)} left` : `Next Treasure Hour ${when(hour.startMs)}`);
+    const boosts = part('', 'boosts', 'div');
+    for (const [kind, times] of Object.entries(hour.boosts)) boosts.append(part(`${KIND_SHORT[kind] ?? kind} ×${times}`, 'chip'));
+    banner.replaceChildren(head, part(live ? `Until ${when(hour.endMs)}: chests count at boosted odds.` : `In ${dhm(hour.startMs - now)}. Boosted odds:`, 'hint'), boosts);
+  }
+  banner.classList.toggle('on', !!hour && hour.startMs <= now);
 
   byId('chances').replaceChildren(
     ...stats.chances.map((c) => {
-      const line = part('', 'table-row chance', 'div');
-      const name = part(c.name);
-      name.title = `1 in ${c.oneIn.toLocaleString('en-US')} per chest · ${c.chests} chests ${c.weekly ? 'this week' : 'in the hunt'}`;
-      line.append(name, part(c.word, 'word'), part(percent(c.chance), '', 'b'));
+      const line = part('', `chance${c.chance >= 0.5 ? ' likely' : ''}`, 'div');
+      line.title = `1 in ${formatNumber(c.oneIn)} per chest · ${c.chests} chests ${c.weekly ? 'this week' : 'in the hunt'}`;
+      const meter = part('', 'meter', 'div');
+      const filled = part('', '', 'i');
+      filled.style.setProperty('--w', `${Math.min(100, c.chance * 100)}%`);
+      meter.append(filled);
+      line.append(part(c.name), part(c.word, 'word'), part(percent(c.chance), '', 'b'), meter);
       return line;
     }),
   );
 
   const weeks = [...stats.collection].sort((a, b) => Number(b.current) - Number(a.current) || b.number - a.number);
   const pirate = stats.pirateShop;
+  const weekHead = (title: string, prizes: readonly { found: boolean; ticked: boolean }[], now = false): HTMLElement => {
+    const head = part('', 'week-head', 'div');
+    const got = prizes.filter((p) => p.found || p.ticked).length;
+    head.append(part(title), ...(now ? [part('Now', 'chip')] : []), part(`${got} / ${prizes.length}`, 'found-count'));
+    return head;
+  };
   byId('collection').replaceChildren(
-    part('Whole hunt', 'week', 'div'),
+    weekHead('Whole hunt', [pirate]),
     tiles([{ id: pirate.id, name: pirate.name, kind: 'pirate-shop', found: pirate.found, ticked: pirate.ticked, image: pirate.image }]),
-    ...weeks.flatMap((week) => [part(`Week ${week.number}${week.current ? ' · now' : ''} · ${week.title}`, 'week', 'div'), tiles(week.prizes)]),
+    ...weeks.flatMap((week) => [weekHead(`Week ${week.number} · ${week.title}`, week.prizes, week.current), tiles(week.prizes)]),
   );
 
   const r = stats.report;
-  const kinds = Object.entries(r.kinds).sort((a, b) => b[1] - a[1]);
+  byId('kpis').replaceChildren(
+    kpi('Chests in total', 'chest', formatNumber(r.totalChests), r.manualChests !== 0 ? `${formatNumber(r.manualChests)} added by hand` : 'in counted matches', true),
+    kpi('Matches', 'flag', formatNumber(r.matches), r.skipped > 0 ? `+ ${r.skipped} in other modes` : 'counted'),
+    kpi('Per match', 'stats', r.average === null ? '–' : r.average.toFixed(1), 'on average'),
+    kpi('Best match', 'trophy', String(r.best), 'chests'),
+    kpi('Treasures', 'gem', String(r.treasures), r.chestsPerTreasure === null ? 'none found yet' : `1 every ${Math.round(r.chestsPerTreasure)} chests`),
+  );
+
+  const kinds = Object.entries(r.kinds).filter(([, n]) => n > 0).sort((a, b) => b[1] - a[1]);
+  if (kinds.length === 0) {
+    byId('kinds').replaceChildren();
+  } else {
+    const bar = part('', 'kinds-bar', 'div');
+    const legend = part('', 'legend', 'div');
+    for (const [kind, n] of kinds) {
+      const colour = KIND_COLOURS[kind] ?? KIND_COLOURS['other']!;
+      const piece = part('', '', 'i');
+      piece.style.setProperty('--n', String(n));
+      piece.style.setProperty('--c', colour);
+      piece.title = `${KIND_LABELS[kind] ?? kind}: ${n}`;
+      bar.append(piece);
+      const entry = part(KIND_LABELS[kind] ?? kind);
+      entry.style.setProperty('--c', colour);
+      entry.append(part(formatNumber(n), '', 'b'));
+      legend.append(entry);
+    }
+    byId('kinds').replaceChildren(part('Chest kinds', 'sub', 'div'), bar, legend);
+  }
   byId('report').replaceChildren(
-    row('Chests in total', r.totalChests.toLocaleString('en-US'), 'big'),
-    row('Matches', String(r.matches)),
-    row('Per match', r.average === null ? '–' : r.average.toFixed(1)),
-    row('Best match', String(r.best)),
-    row('Treasures', r.chestsPerTreasure === null ? String(r.treasures) : `${r.treasures} · 1 every ${Math.round(r.chestsPerTreasure)} chests`),
-    ...(r.manualChests !== 0 ? [row('Added by hand', r.manualChests.toLocaleString('en-US'))] : []),
+    // broken chests count like opened ones, but give no "+XP CHEST" and make no opening sound: the live count misses them
+    ...(r.broken > 0 ? [row('Broken, not opened (counted)', formatNumber(r.broken))] : []),
     // your chests in counted matches + the teammates' chests your replays recorded; teammates far away are missing
     squadRow(r.totalChests - r.manualChests + r.teamChests, r.teamChests),
+    ...(r.manualChests !== 0 ? [row('Added by hand', formatNumber(r.manualChests))] : []),
     ...(r.skipped > 0 ? [row('Other modes (not counted)', String(r.skipped))] : []),
-    ...(kinds.length > 0 ? [part('Chest kinds', 'sub', 'div'), ...kinds.map(([kind, n]) => row(KIND_LABELS[kind] ?? kind, String(n)))] : []),
-    // broken chests count like opened ones, but make no opening sound: the live count by sound misses them
-    ...(r.broken > 0 ? [row('Broken, not opened (counted)', String(r.broken))] : []),
-    ...(r.perDay.length > 0 ? [part('Last days', 'sub', 'div'), ...r.perDay.map(([day, n]) => row(day, String(n)))] : []),
   );
+  byId('days').replaceChildren(...lastDays(r.perDay));
 
   byId('manual').replaceChildren(
     ...stats.manual.map((entry) => {
       const line = part('', 'table-row', 'div');
       const label = entry.kind === 'estimate' ? `Estimate (${entry.careerMatches} matches)` : new Date(entry.addedMs).toLocaleDateString('en-CA');
-      const remove = part('×', 'icon', 'button');
+      const remove = part('', 'icon', 'button');
+      remove.append(icon('close'));
       remove.title = 'Take it back';
       remove.addEventListener('click', () => app.removeManual(entry.id));
-      line.append(part(label), part(`${entry.chests > 0 ? '+' : ''}${entry.chests}`, '', 'b'), remove);
+      line.append(part(label), part(`${entry.chests > 0 ? '+' : ''}${formatNumber(entry.chests)}`, '', 'b'), remove);
       return line;
     }),
   );
@@ -358,26 +475,28 @@ function showStats(state: ShownState): void {
 
 function showSound(state: ShownState): void {
   input('auto-count').checked = state.autoCount;
+  input('sensitivity').closest<HTMLElement>('.slider')!.hidden = !state.autoCount; // only means something while it listens
 
   const paused = state.listening === 'on' && state.phase === 'lobby';
   const ear = state.listening === 'on' ? (paused ? 'wait' : 'on') : state.listening === 'waiting' ? 'wait' : 'off';
   const reading = state.liveCount && state.screenCount && state.screenStatus === 'on';
-  // the dot under 🎧: green while chests are counted by themselves (screen or sound), red otherwise
-  byId('ear').className = `ear ${ear === 'on' || reading ? 'on' : 'off'}`;
-  setDot('sound-dot', ear);
+  // the icon on the bar shows what counts (an eye: the screen, earphones: the sound); the dot under it is green while
+  // chests are counted by themselves, red otherwise
+  byId('ear').className = `ear ${ear === 'on' || reading ? 'on' : 'off'}${reading ? ' by-screen' : ''}`;
+  setDot('sound-dot', !state.liveCount ? 'off' : ear);
   byId('ear').title = reading
     ? 'Counting from the screen, and by sound what it missed'
     : paused ? 'In the lobby: not counting' : ear === 'on' ? 'Counting by sound' : 'Not counting';
   byId('sound-status').textContent =
     !state.liveCount
-      ? 'Off: live counting is off.'
+      ? 'Off (live counting is off)'
       : state.listening === 'off'
-      ? 'Off. Count with your keys or controller.'
+      ? (state.screenCount ? 'Off: the screen counts alone' : 'Off: count with your keys or controller')
       : state.listening === 'waiting'
-        ? 'Waiting for Fortnite to start.'
+        ? 'Waiting for Fortnite to start'
         : state.listening === 'on'
-          ? `Listening to Fortnite only · ${state.heard} heard`
-          : 'Off: this PC cannot hear Fortnite on its own. Count with your keys or controller.';
+          ? `Listening · ${state.heard} heard`
+          : 'This PC cannot hear Fortnite on its own';
   byId('fortnite-problem').textContent =
     state.fortniteProblem === '' ? '' : `Windows said: ${state.fortniteProblem}. The app never listens to the whole PC.`;
 
@@ -388,23 +507,49 @@ function showSound(state: ShownState): void {
   byId('replay-warning').hidden = !replayProblem;
   byId('replay-warning').title =
     replay.status === 'missing' ? 'No replay of the last match: turn on Record Replays in Fortnite (Settings → Game → Replays)' : 'The replay of the last match could not be read';
+  const seen = replay.seen ?? 0;
+  const kept = replay.status === 'done' && seen > (replay.chests ?? 0); // the replay lost chests: the screen's number stays
   byId('replay-status').textContent = replay.status === 'checking'
       ? 'Reading the replay of the last match…'
       : replay.status === 'done'
-        ? (replay.seen ?? 0) > (replay.chests ?? 0)
-          ? `Last match: ${replay.seen} chests seen on screen, kept: the replay lost some and has only ${replay.chests}.`
-          : `Last match: ${replay.chests} chests from the replay${replay.broken ? `, ${replay.broken} of them broken` : ''} (seen on screen ${replay.seen ?? 0}, heard ${replay.heard}).`
+        ? kept ? `Kept the screen's count: the replay lost some` : 'Last match read from its replay'
         : replay.status === 'missing'
           ? 'No replay found. Turn on Record Replays in Fortnite.'
           : replay.status === 'skipped'
-            ? `Last match not counted: ${replay.reason || 'not a treasure hunt match'} (${replay.chests} chests).`
+            ? `Not counted: ${replay.reason || 'not a treasure hunt match'}`
           : replay.status === 'failed'
             ? `Could not read the replay: ${replay.reason}`
-            : 'Waiting for a match to finish.';
+            : 'Waiting for a match to finish';
+  showReplaySummary(replay, kept);
 
   const sensitivity = Math.round(state.sensitivity * 100);
   input('sensitivity').value = String(sensitivity);
+  fill(input('sensitivity'));
   byId('sensitivity-value').textContent = sensitivity === 50 ? 'Normal' : sensitivity < 50 ? 'Strict' : 'Eager';
+}
+
+/** The last match in the Replays card: its count, big, and what made it up. */
+function showReplaySummary(replay: ShownState['replay'], kept: boolean): void {
+  const box = byId('replay-summary');
+  box.hidden = (replay.status !== 'done' && replay.status !== 'skipped') || replay.chests === undefined;
+  if (box.hidden) return;
+  const big = part('', 'big', 'div');
+  big.append(part(String(kept ? replay.seen : replay.chests), '', 'b'), part(replay.status === 'skipped' ? 'not counted' : 'chests'));
+  const fact = (iconName: string, n: number, words: string): HTMLElement => {
+    const chip = part('', 'fact');
+    chip.append(icon(iconName), part(String(n), '', 'b'), ` ${words}`);
+    return chip;
+  };
+  const facts = part('', 'facts', 'div');
+  facts.append(
+    ...(replay.broken ? [fact('warning', replay.broken, 'broken')] : []),
+    fact('eye', replay.seen ?? 0, 'on screen'),
+    fact('headphones', replay.heard ?? 0, 'heard'),
+    ...(kept ? [part(`The replay had only ${replay.chests}.`, 'note')] : []),
+  );
+  const side = part('', '', 'div');
+  side.append(part('Last match', 'sub', 'div'), facts);
+  box.replaceChildren(big, side);
 }
 
 function showControls(state: ShownState): void {
@@ -423,18 +568,20 @@ function showControls(state: ShownState): void {
 
 // ---- "+1 🎧" when a chest is counted ----
 
-const ICONS: Readonly<Record<string, string>> = { sound: '🎧', screen: '👀', key: '⌨️', pad: '🎮', hand: '🖱️' };
+const ICONS: Readonly<Record<string, string>> = { sound: 'headphones', screen: 'eye', key: 'keyboard', pad: 'gamepad', hand: 'mouse' };
 
 app.onCounted((action, by) => {
   if (action !== 'add' && action !== 'undo') return;
   const cat = (by === 'sound' || by === 'screen') && document.body.classList.contains('cat'); // cat mode: the cat found it
-  const pop = part(`${action === 'add' ? '+1' : '−1'} ${cat ? '' : (ICONS[by] ?? '')}`, `pop ${action === 'undo' ? 'minus' : ''}`);
+  const pop = part(action === 'add' ? '+1' : '−1', `pop ${action === 'undo' ? 'minus' : ''}`);
   if (cat) {
     const picture = document.createElement('img');
     picture.src = 'assets/ear-cat.png';
     picture.className = 'pop-cat';
     picture.alt = '';
     pop.append(picture);
+  } else if (ICONS[by]) {
+    pop.append(icon(ICONS[by]));
   }
   byId('pops').append(pop);
   pop.addEventListener('animationend', () => pop.remove());
@@ -521,6 +668,7 @@ window.addEventListener('keydown', (event) => {
   if (event.key === 'Escape' && !confirmBox.hidden) closeConfirm();
 });
 input('opacity').addEventListener('input', () => app.opacity(Number(input('opacity').value) / 100));
+input('sensitivity').addEventListener('input', () => fill(input('sensitivity'))); // the colour follows the knob at once
 input('sensitivity').addEventListener('change', () => app.sensitivity(Number(input('sensitivity').value) / 100));
 input('auto-count').addEventListener('change', () => app.autoCount(input('auto-count').checked));
 input('show-history').addEventListener('change', () => app.showHistory(input('show-history').checked));

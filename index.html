@@ -7,7 +7,36 @@
     <link rel="stylesheet" href="style.css" />
   </head>
   <body data-view="counter" data-tab="sound">
-    <!-- The overlay bar. The mouse goes through it, except over ⚙ and while the position is unlocked. -->
+    <!-- Icons, drawn as lines in the text colour: <svg class="i"><use href="#i-name" /></svg> -->
+    <svg class="sprite" aria-hidden="true">
+      <symbol id="i-chest" viewBox="0 0 24 24"><path d="M4 11h16v8a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1z" /><path d="M4 11V9a5 5 0 0 1 5-5h6a5 5 0 0 1 5 5v2" /><path d="M10.5 11v3h3v-3" /></symbol>
+      <symbol id="i-gamepad" viewBox="0 0 24 24"><path d="M7 8h10a4.5 4.5 0 0 1 4.4 5.4l-.7 3.4a2 2 0 0 1-3.5.9L15.4 16H8.6l-1.8 1.7a2 2 0 0 1-3.5-.9l-.7-3.4A4.5 4.5 0 0 1 7 8z" /><path d="M8 10.5v3M6.5 12h3" /><path d="M15.5 11h.01M17.5 13h.01" /></symbol>
+      <symbol id="i-brush" viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 0 18c1.1 0 1.6-.8 1.3-1.7-.4-1.2.4-2.3 1.7-2.3H17a4 4 0 0 0 4-4c0-5.5-4-10-9-10z" /><path d="M7.5 11h.01M10 7.5h.01M14.5 7.5h.01" /></symbol>
+      <symbol id="i-stats" viewBox="0 0 24 24"><path d="M5 20V12M12 20V5M19 20v-5" /></symbol>
+      <symbol id="i-close" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18" /></symbol>
+      <symbol id="i-sliders" viewBox="0 0 24 24"><path d="M4 7h9M17 7h3M4 17h3M11 17h9" /><circle cx="15" cy="7" r="2" /><circle cx="9" cy="17" r="2" /></symbol>
+      <symbol id="i-headphones" viewBox="0 0 24 24"><path d="M4 15v-3a8 8 0 0 1 16 0v3" /><rect x="3" y="14" width="4.5" height="6.5" rx="1.8" /><rect x="16.5" y="14" width="4.5" height="6.5" rx="1.8" /></symbol>
+      <symbol id="i-eye" viewBox="0 0 24 24"><path d="M2.5 12S6 5.5 12 5.5 21.5 12 21.5 12 18 18.5 12 18.5 2.5 12 2.5 12z" /><circle cx="12" cy="12" r="2.8" /></symbol>
+      <symbol id="i-wave" viewBox="0 0 24 24"><path d="M4 10v4M8 7v10M12 4v16M16 8v8M20 11v2" /></symbol>
+      <symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 3L5 13.5h6L10 21l8-10.5h-6z" /></symbol>
+      <symbol id="i-replay" viewBox="0 0 24 24"><path d="M4.5 12a7.5 7.5 0 1 0 2.2-5.3" /><path d="M4.5 4v3.5H8" /><path d="M10.5 9.3v5.4l4.2-2.7z" /></symbol>
+      <symbol id="i-warning" viewBox="0 0 24 24"><path d="M12 4l9 16H3z" /><path d="M12 10v4M12 17.2v.3" /></symbol>
+      <symbol id="i-lock" viewBox="0 0 24 24"><rect x="5" y="11" width="14" height="9" rx="2" /><path d="M8 11V8a4 4 0 0 1 8 0v3" /></symbol>
+      <symbol id="i-keyboard" viewBox="0 0 24 24"><rect x="2.5" y="6" width="19" height="12" rx="2.5" /><path d="M6.5 10h.01M10 10h.01M13.5 10h.01M17 10h.01M7 14h10" /></symbol>
+      <symbol id="i-mouse" viewBox="0 0 24 24"><rect x="7" y="3" width="10" height="18" rx="5" /><path d="M12 7v3" /></symbol>
+      <symbol id="i-power" viewBox="0 0 24 24"><path d="M12 3v8" /><path d="M7 6.3a7.5 7.5 0 1 0 10 0" /></symbol>
+      <symbol id="i-bell" viewBox="0 0 24 24"><path d="M6 16V11a6 6 0 0 1 12 0v5l1.5 2h-15z" /><path d="M10 20.5h4" /></symbol>
+      <symbol id="i-cast" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="12" rx="2" /><path d="M8 21h8M12 17v4" /></symbol>
+      <symbol id="i-download" viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5L12 15l4.5-4.5M5 20h14" /></symbol>
+      <symbol id="i-clock" viewBox="0 0 24 24"><circle cx="12" cy="12" r="8.5" /><path d="M12 7.5V12l3 2" /></symbol>
+      <symbol id="i-trophy" viewBox="0 0 24 24"><path d="M8 4h8v5a4 4 0 0 1-8 0z" /><path d="M8 6H5a3 3 0 0 0 3 4.5M16 6h3a3 3 0 0 1-3 4.5M12 13v4M8.5 20.5h7" /></symbol>
+      <symbol id="i-gem" viewBox="0 0 24 24"><path d="M7 4h10l4 5-9 11L3 9z" /><path d="M3 9h18M10 4l2 16 2-16" /></symbol>
+      <symbol id="i-flag" viewBox="0 0 24 24"><path d="M5 21V4M5 4h11l-2 4 2 4H5" /></symbol>
+      <symbol id="i-check" viewBox="0 0 24 24"><path d="M5 12.5l4.5 4.5L19 7.5" /></symbol>
+      <symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 13V5.5a1.5 1.5 0 0 1 3 0V11M11 11V4a1.5 1.5 0 0 1 3 0v7M14 11V5.5a1.5 1.5 0 0 1 3 0V14a7 7 0 0 1-7 7h-.5a6 6 0 0 1-4.8-2.4L3 15.5a1.6 1.6 0 0 1 2.4-2L8 15.5" /></symbol>
+    </svg>
+
+    <!-- The overlay bar. The mouse goes through it, except over the settings button and while the position is unlocked. -->
     <main id="counter">
       <div class="numbers">
         <div class="stat main">
@@ -16,117 +45,131 @@
         </div>
         <div class="stat"><span class="label">Session</span><b id="session">0</b></div>
         <div class="stat"><span class="label">Total</span><b id="total">0</b></div>
-        <span id="replay-warning" class="warn-badge" hidden>⚠</span>
-        <span id="ear" class="ear" title="Not counting by sound"><span class="ear-icon"><span class="ear-emoji">🎧</span><img class="ear-cat" src="assets/ear-cat.png" alt="" /></span><span class="ear-dot"></span></span>
-        <button id="gear" class="icon" title="Settings">⚙</button>
+        <span id="replay-warning" class="warn-badge" hidden><svg class="i"><use href="#i-warning" /></svg></span>
+        <span id="ear" class="ear" title="Not counting">
+          <span class="ear-icon">
+            <svg class="i ear-emoji ear-sound"><use href="#i-headphones" /></svg>
+            <svg class="i ear-emoji ear-screen"><use href="#i-eye" /></svg>
+            <img class="ear-cat" src="assets/ear-cat.png" alt="" />
+          </span>
+          <span class="ear-dot"></span>
+        </span>
+        <button id="gear" class="icon" title="Settings"><svg class="i"><use href="#i-sliders" /></svg></button>
       </div>
       <div id="history-line" class="history"></div>
       <!-- only while moving: on a row of its own, so the bar keeps its width and the numbers do not shift -->
       <div class="move-row moving-only">
         <span class="hint">Drag the bar where you want it</span>
-        <button id="done" title="Lock the position">🔒 Lock</button>
-        <button id="quit" class="icon" title="Hide until Fortnite starts again (Quit completely: the icon next to the clock)">×</button>
+        <button id="done" title="Lock the position"><svg class="i"><use href="#i-lock" /></svg>Lock</button>
+        <button id="quit" class="icon" title="Hide until Fortnite starts again (Quit completely: the icon next to the clock)"><svg class="i"><use href="#i-close" /></svg></button>
       </div>
     </main>
 
     <main id="settings">
       <header>
-        <span class="brand"><span class="coin"></span>Chest Counter</span>
-        <button id="back" class="icon" title="Close settings">×</button>
+        <span class="brand"><span class="coin"></span>Chest Counter<span id="app-version" class="version"></span></span>
+        <span id="live-pill" class="pill"></span>
+        <button id="back" class="icon" title="Close settings"><svg class="i"><use href="#i-close" /></svg></button>
       </header>
 
       <nav>
-        <button data-tab="sound">Counting</button>
-        <button data-tab="controls">Controls</button>
-        <button data-tab="look">Display</button>
-        <button data-tab="stats">Stats</button>
+        <button data-tab="sound"><svg class="i"><use href="#i-chest" /></svg><span>Counting</span></button>
+        <button data-tab="controls"><svg class="i"><use href="#i-gamepad" /></svg><span>Controls</span></button>
+        <button data-tab="look"><svg class="i"><use href="#i-brush" /></svg><span>Display</span></button>
+        <button data-tab="stats"><svg class="i"><use href="#i-stats" /></svg><span>Stats</span></button>
       </nav>
 
       <section class="tab" id="tab-sound">
         <div class="card">
-          <label class="row switch-row">
-            <span>Open with Fortnite</span>
-            <input id="open-with-fortnite" type="checkbox" class="switch" />
-          </label>
-          <p class="hint">Starts with Windows, hidden next to the clock, and shows the counter only while Fortnite runs. It hides a minute after the game closes, once the last replay is read. × on the bar only hides it; "Quit completely" (the icon next to the clock) stops it until you open it again.</p>
-          <label class="row switch-row">
-            <span>Notifications</span>
-            <input id="notifications" type="checkbox" class="switch" />
-          </label>
-          <p class="hint">A Windows notification 5 minutes before a Treasure Hour, and when a replay shows you found a treasure.</p>
-        </div>
-
-        <div class="card">
-          <label class="row switch-row">
-            <h3>Live counting</h3>
+          <label class="row switch-row head">
+            <span class="icon-tile"><svg class="i"><use href="#i-bolt" /></svg></span>
+            <span class="titles"><span class="title">Live counting</span><span class="sub-title">Counts chests during the match</span></span>
             <input id="live-count" type="checkbox" class="switch" />
           </label>
-          <p class="hint">Counts chests during the match: the screen first, the sound for what the screen missed. Off: only the replay counts, after each match, and your keys.</p>
           <div id="live-ways" class="live-ways">
-          <label class="row switch-row">
-            <span>Count by reading "+XP CHEST" on screen</span>
-            <input id="screen-count" type="checkbox" class="switch" />
-          </label>
-          <p class="hint">During matches the counter looks at the small area right of the crosshair, five times a second, for the "+600 XP / CHEST" text. Nothing is recorded or sent: each look is dropped at once. Needs Windowed Fullscreen and the game in English (other languages later).</p>
-          <p class="status"><span id="screen-dot" class="dot"></span><span id="screen-status"></span></p>
-          <label class="row switch-row">
-            <span>Count chests by sound</span>
-            <input id="auto-count" type="checkbox" class="switch" />
-          </label>
-          <p class="hint">Only Fortnite's own sound is heard: never Discord, music or anything else on your PC.</p>
-          <p class="status"><span id="sound-dot" class="dot"></span><span id="sound-status"></span></p>
-          <p id="fortnite-problem" class="hint warn"></p>
+            <div class="way">
+              <label class="row switch-row">
+                <span class="icon-tile small"><svg class="i"><use href="#i-eye" /></svg></span>
+                <span class="titles"><span class="title">Read the screen</span><span class="sub-title">The "+XP CHEST" text</span></span>
+                <input id="screen-count" type="checkbox" class="switch" />
+              </label>
+              <p class="status"><span id="screen-dot" class="dot"></span><span id="screen-status"></span></p>
+              <details class="more">
+                <summary>How it works</summary>
+                <p>During matches the counter looks at the small area right of the crosshair, five times a second, for the "+600 XP / CHEST" text. Nothing is recorded or sent: each look is dropped at once. Needs Windowed Fullscreen and the game in English (other languages later).</p>
+              </details>
+            </div>
+            <div class="way">
+              <label class="row switch-row">
+                <span class="icon-tile small"><svg class="i"><use href="#i-wave" /></svg></span>
+                <span class="titles"><span class="title">Listen to the game</span><span class="sub-title">For what the screen missed</span></span>
+                <input id="auto-count" type="checkbox" class="switch" />
+              </label>
+              <p class="status"><span id="sound-dot" class="dot"></span><span id="sound-status"></span></p>
+              <div class="slider">
+                <div class="row"><span>Sensitivity</span><span id="sensitivity-value" class="value"></span></div>
+                <input id="sensitivity" type="range" min="0" max="100" step="5" />
+                <div class="row ends"><span>Fewer false alarms</span><span>Catch more chests</span></div>
+              </div>
+              <details class="more">
+                <summary>How it works</summary>
+                <p>A closed chest hums; when it opens, the hum stops and a short burst plays. Only Fortnite's own sound is heard, never Discord, music or anything else on your PC. A chest the screen already counted is not counted again.</p>
+              </details>
+            </div>
+            <p id="fortnite-problem" class="hint warn"></p>
           </div>
         </div>
 
         <div class="card">
-          <div class="row"><span>Sensitivity</span><span id="sensitivity-value" class="value"></span></div>
-          <input id="sensitivity" type="range" min="0" max="100" step="5" />
-          <div class="row ends"><span>Fewer false alarms</span><span>Catch more chests</span></div>
-          <p class="hint">Adjusts how the sound counts during a match. The replay still sets the exact number when the match ends.</p>
-        </div>
-
-        <div class="card">
-          <h3>Replays</h3>
+          <div class="row head">
+            <span class="icon-tile"><svg class="i"><use href="#i-replay" /></svg></span>
+            <span class="titles"><span class="title">Replays</span><span class="sub-title">The exact count after each match</span></span>
+          </div>
+          <div id="replay-summary" class="summary" hidden></div>
           <p class="status"><span id="replay-dot" class="dot"></span><span id="replay-status"></span></p>
-          <p class="hint">When a match ends, the exact count from Fortnite's replay replaces the live one. Needs Fortnite → Settings → Game → Replays → Record Replays: On. FPS problems? Turn Record Replays off: the replay recording can make the game stutter, and the live count still works without it.</p>
+          <p class="hint">Needs Record Replays on in Fortnite (Settings → Game → Replays). FPS drops? Turn it off: the live count works without it.</p>
           <div class="row replay-files">
             <span id="replay-files" class="hint"></span>
             <button id="clean-replays">Clean up…</button>
           </div>
+          <div class="divider"></div>
           <label class="row switch-row">
-            <span>Only count treasure hunt matches</span>
+            <span class="titles"><span class="title">Treasure hunt matches only</span><span class="sub-title">Ranked, Reload, other modes and Creative are listed but stay out of your totals</span></span>
             <input id="only-hunt" type="checkbox" class="switch" />
           </label>
-          <p class="hint">Battle Royale on the season's map only. Ranked, Reload, other limited modes and Creative are kept in the list but not in your totals.</p>
         </div>
       </section>
 
       <section class="tab" id="tab-controls">
         <div class="card">
-          <h3>Keyboard</h3>
+          <div class="row head">
+            <span class="icon-tile"><svg class="i"><use href="#i-keyboard" /></svg></span>
+            <span class="titles"><span class="title">Keyboard</span><span class="sub-title">Click a key, then press the new one</span></span>
+          </div>
           <div class="bind"><span>Add chest</span><button data-key="add"></button></div>
           <div class="bind"><span>Undo</span><button data-key="undo"></button></div>
           <div class="bind"><span>New match</span><button data-key="newMatch"></button></div>
           <div class="bind"><span>Show / hide bar</span><button data-key="toggleBar"></button></div>
-          <p class="hint">Click a key, then press the new one. Esc cancels.</p>
-          <p class="hint">Works best with F1–F12 or the numpad: a letter or number key used here no longer reaches the game or the chat.</p>
+          <p class="hint">Esc cancels. F1–F12 or the numpad work best: a letter or number key used here no longer reaches the game or the chat.</p>
         </div>
 
         <div class="card">
-          <h3>Controller</h3>
+          <div class="row head">
+            <span class="icon-tile"><svg class="i"><use href="#i-gamepad" /></svg></span>
+            <span class="titles"><span class="title">Controller</span><span class="sub-title">One button or a combination</span></span>
+          </div>
           <p class="status"><span id="pad-dot" class="dot"></span><span id="pad-status"></span></p>
           <div class="bind">
-            <span>Add chest</span><button data-pad="add"></button><button class="icon" data-clear="add" title="Clear">×</button>
+            <span>Add chest</span><button data-pad="add"></button><button class="icon" data-clear="add" title="Clear"><svg class="i"><use href="#i-close" /></svg></button>
           </div>
           <div class="bind">
-            <span>Undo</span><button data-pad="undo"></button><button class="icon" data-clear="undo" title="Clear">×</button>
+            <span>Undo</span><button data-pad="undo"></button><button class="icon" data-clear="undo" title="Clear"><svg class="i"><use href="#i-close" /></svg></button>
           </div>
           <div class="bind">
-            <span>New match</span><button data-pad="newMatch"></button><button class="icon" data-clear="newMatch" title="Clear">×</button>
+            <span>New match</span><button data-pad="newMatch"></button><button class="icon" data-clear="newMatch" title="Clear"><svg class="i"><use href="#i-close" /></svg></button>
           </div>
           <div class="bind">
-            <span>Show / hide bar</span><button data-pad="toggleBar"></button><button class="icon" data-clear="toggleBar" title="Clear">×</button>
+            <span>Show / hide bar</span><button data-pad="toggleBar"></button><button class="icon" data-clear="toggleBar" title="Clear"><svg class="i"><use href="#i-close" /></svg></button>
           </div>
           <p class="hint">I use View as Add chest LOL, it's up to you tho.</p>
         </div>
@@ -136,31 +179,48 @@
         <div class="card">
           <h3>Theme</h3>
           <div class="themes">
-            <button data-theme-pick="dark"><span class="swatch"></span>Dark</button>
-            <button data-theme-pick="midnight"><span class="swatch"></span>Midnight</button>
-            <button data-theme-pick="storm"><span class="swatch"></span>Storm</button>
+            <button data-theme-pick="dark"><span class="preview"><i>6</i><i>54</i><i>5,073</i></span><span class="name">Dark</span></button>
+            <button data-theme-pick="midnight"><span class="preview"><i>6</i><i>54</i><i>5,073</i></span><span class="name">Midnight</span></button>
+            <button data-theme-pick="storm"><span class="preview"><i>6</i><i>54</i><i>5,073</i></span><span class="name">Storm</span></button>
           </div>
         </div>
 
         <div class="card">
-          <div class="row"><span>Background</span><span id="opacity-value" class="value"></span></div>
-          <input id="opacity" type="range" min="0" max="100" step="5" />
+          <h3>Bar</h3>
+          <div class="slider">
+            <div class="row"><span>Background</span><span id="opacity-value" class="value"></span></div>
+            <input id="opacity" type="range" min="0" max="100" step="5" />
+          </div>
           <label class="row switch-row">
-            <span>Show last matches</span>
+            <span class="titles"><span class="title">Show last matches</span><span class="sub-title">A second row with your last matches and average</span></span>
             <input id="show-history" type="checkbox" class="switch" />
           </label>
           <label class="row switch-row">
-            <span>Cat instead of 🎧</span>
+            <span class="titles"><span class="title">Cat mode</span><span class="sub-title">A cat with earphones finds your chests</span></span>
             <input id="cat" type="checkbox" class="switch" />
+          </label>
+          <label class="row switch-row">
+            <span class="titles"><span class="title">Lock position</span><span class="sub-title">Unlock, close settings and drag the bar</span></span>
+            <input id="lock" type="checkbox" class="switch" />
           </label>
         </div>
 
         <div class="card">
+          <h3>Startup</h3>
           <label class="row switch-row">
-            <span>Lock position</span>
-            <input id="lock" type="checkbox" class="switch" />
+            <span class="icon-tile small"><svg class="i"><use href="#i-power" /></svg></span>
+            <span class="titles"><span class="title">Open with Fortnite</span><span class="sub-title">Waits next to the clock, shows the bar while the game runs</span></span>
+            <input id="open-with-fortnite" type="checkbox" class="switch" />
           </label>
-          <p class="hint">Unlock, close settings and drag the counter. Press 🔒 Lock on it when it is in place.</p>
+          <details class="more">
+            <summary>More</summary>
+            <p>Starts with Windows, hidden next to the clock, and shows the counter only while Fortnite runs. It hides a minute after the game closes, once the last replay is read. × on the bar only hides it; "Quit completely" (the icon next to the clock) stops it until you open it again.</p>
+          </details>
+          <label class="row switch-row">
+            <span class="icon-tile small"><svg class="i"><use href="#i-bell" /></svg></span>
+            <span class="titles"><span class="title">Notifications</span><span class="sub-title">Treasure Hours and treasures found</span></span>
+            <input id="notifications" type="checkbox" class="switch" />
+          </label>
         </div>
 
         <div class="card">
@@ -176,7 +236,7 @@
           <h3>Version</h3>
           <div class="row">
             <span id="update-status" class="hint"></span>
-            <button id="install-update" hidden>Update</button>
+            <button id="install-update" class="primary" hidden><svg class="i"><use href="#i-download" /></svg>Update</button>
           </div>
           <div id="update-bar" class="update-bar" hidden><div id="update-fill" class="update-fill"></div></div>
         </div>
@@ -185,27 +245,34 @@
       </section>
 
       <section class="tab" id="tab-stats">
-        <div class="card wide">
-          <h3 id="week-title">Treasure hunt</h3>
-          <p id="week-ends" class="hint"></p>
-          <p id="hour-banner" class="banner"></p>
+        <div class="hero wide">
+          <div class="hero-week">
+            <span id="week-chip" class="chip"></span>
+            <h2 id="week-title">Treasure hunt</h2>
+            <p id="week-ends" class="with-icon"></p>
+          </div>
+          <div id="hour-banner" class="banner"></div>
         </div>
+
+        <div id="kpis" class="kpis wide"></div>
 
         <div class="card">
           <h3>Your chances</h3>
-          <div id="chances" class="table"></div>
+          <div id="chances" class="chances"></div>
           <p class="hint">The chance each prize has dropped for you at least once. Weekly prizes count this week's chests, the others the whole hunt. Chests opened in a Treasure Hour count at its boosted odds.</p>
         </div>
 
         <div class="card">
           <h3>Report</h3>
+          <div id="kinds" class="kinds"></div>
           <div id="report" class="table"></div>
+          <div id="days" class="days"></div>
         </div>
 
         <div class="card wide">
           <h3>Collection</h3>
           <div id="collection"></div>
-          <p class="hint">Highlighted border: found in your replays. Got one another way? Click it to tick it.</p>
+          <p class="hint">Gold border: found in your replays. Got one another way? Click it to tick it.</p>
         </div>
 
         <div class="card">
@@ -222,7 +289,9 @@
           <div id="manual"></div>
         </div>
 
-        <div class="card reset-card">
+        <div class="card danger-zone">
+          <h3>Start over</h3>
+          <p class="hint">Match, Session and Total go back to 0 and the match history is deleted. Your settings stay.</p>
           <button id="reset-stats" class="danger">Reset all stats…</button>
         </div>
       </section>
