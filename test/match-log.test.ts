@@ -56,6 +56,20 @@ describe('MatchLog', () => {
     log.stop();
   });
 
+  it('reads a new log from the start even when it is already longer than the old one', () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
+    writeFileSync(file, `Log file open, 11/17/26 01:02:03\n${`${LINES.setting}\n`.repeat(30)}`);
+    const events: MatchEvent[] = [];
+    const log = new MatchLog((event) => events.push(event), file);
+    log.start(60_000);
+    // the game was started again and wrote a lot at once: the new file is past the old length at the next look
+    // (the match lines are near its start, before where the old file ended)
+    writeFileSync(file, `Log file open, 11/17/26 12:50:36\n${LINES.warmup}\n${LINES.back}\n${`${LINES.setting}\n`.repeat(60)}`);
+    log.poll();
+    expect(events).toEqual(['start', 'lobby']);
+    log.stop();
+  });
+
   it('waits quietly while there is no log', () => {
     const log = new MatchLog(() => undefined, join(tmpdir(), 'no-such-dir', 'FortniteGame.log'));
     expect(log.found()).toBe(false);
