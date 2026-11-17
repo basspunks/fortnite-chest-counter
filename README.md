@@ -124,9 +124,9 @@ own, counting by sound stays off and you can count with your keys or controller.
 The detector learned from real matches: 13 recorded clips in which every sound that looked like a chest was checked
 against the video (91 chest openings, and 60 look-alikes such as breaking boxes and walls, doors and shots). What
 tells them apart best is how long the hum was heard before: a chest hums the whole time you walk up to it.
-Tested on clips it had not learned from, it finds about 86% of the chests, against 68% for the first version. Rare
+Tested on clips it had not learned from, it finds about 86% of the chests, against 68% for the first version (unreleased). Rare
 (purple) chests are still often missed, as the recordings had almost none, and so is a chest opened right next to
-another one; the replay counts them after the match.
+another one; the replay counts them after the match. 
 
 Below, spectrograms of those recordings (time from left to right, pitch from bottom to top).
 
