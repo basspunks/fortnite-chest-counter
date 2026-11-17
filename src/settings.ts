@@ -49,7 +49,7 @@ export const DEFAULT_SETTINGS: Settings = {
   keys: { add: 'F8', undo: 'F7', newMatch: 'F9', toggleBar: 'Ctrl+Shift+O' },
   pad: { add: [], undo: [], newMatch: [], toggleBar: [] },
   opacity: 0.45,
-  autoCount: true,
+  autoCount: false, // the screen counts; the sound is for whoever turns it on (it can count a teammate's chest)
   sensitivity: 0.5,
   showHistory: true,
   theme: 'dark',

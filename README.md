@@ -20,7 +20,7 @@
 </p>
 
 <p align="center">
-  <img src="docs/images/bar.png" alt="The counter bar: Match, Session, Total, last matches and average" />
+  <img src="docs/images/bar.png" width="380" alt="The counter bar: Match, Session, Total, last matches and average" />
 </p>
 
 > **Unofficial fan project.** Not affiliated with, endorsed or sponsored by Epic Games. Fortnite is a trademark of
@@ -37,8 +37,8 @@
 
 > [!NOTE]
 > **Replays must be turned on** (*Settings → Game → Replays → Record Replays: On*). The exact count of each match comes
-> from its replay. Without replays, the counter only has the live count (about 84% of all chests, broken ones
-> included), so the results will not be 100% accurate.
+> from its replay. Without replays, the counter only has the live count (the screen finds about 97% of the chests you
+> open, but never the ones you break), so the results will not be 100% accurate.
 
 > [!TIP]
 > **FPS problems?** Fortnite's replay recording itself can make the game stutter: its own log often says it ran over
@@ -61,7 +61,7 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   counting, the whole app uses about 1–3% of one CPU core, plus at most about 6% of one core in matches while it
   reads the screen (well under 1% of a 6-core CPU). Frames without any "+XP" text are skipped at once.
 - **Live count**: during the match, each chest you open is counted by reading the "+XP CHEST" text on screen (97% in
-  tests), and the sound counts what the screen missed (84% of all chests together). See [Live counting](#live-counting).
+  tests). Counting by sound can be turned on too, for what the screen missed. See [Live counting](#live-counting).
 - **Exact count after every match**: when a match ends, Fortnite's replay of it is read and its exact number of chests
   replaces the live count. Match, Session, Total and the history are corrected, and you see how many of the
   chests were broken rather than opened.
@@ -77,7 +77,7 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   &nbsp;
   <img src="docs/images/bar-cat.png" width="45%" alt="The same in cat mode" />
   <br />
-  <sub>A chest heard live, and the same in cat mode</sub>
+  <sub>A chest seen on screen, and the same in cat mode</sub>
 </p>
 
 <p align="center">
@@ -135,25 +135,26 @@ replay can miss a chest or two. When the screen saw more chests opened than the 
 
 ### Live counting
 
-During a match the count goes up live, by **reading the screen** and by **sound**. Both sit under one switch,
-*Settings → Counting → Live counting*, and each can be turned off on its own. The screen counts first. The sound counts
-a chest only when the screen saw none from 1 second before to 3 seconds after it, so a chest is never counted twice,
-and the sound still catches what the screen missed. Whatever was counted live, the replay replaces it with the exact
-number when the match ends.
+During a match the count goes up live, by **reading the screen**, and by **sound** if you turn it on. Both sit under
+one switch, *Settings → Counting → Live counting*. The sound is **off by default**: it can hear a chest a teammate opens
+right next to you, which is not yours. Turned on, it counts a chest only when it is very sure and the screen saw none
+from 1 second before to 3 seconds after it, so a chest is never counted twice. When the screen cannot be read (another
+language, exclusive Fullscreen), the sound counts everything it hears. Whatever was counted live, the replay replaces it
+with the exact number when the match ends.
 
 How well each one does, checked on 4 recorded matches against their own replays (87 chests: 70 opened, 17 broken):
 
 | | Chests found | False counts | Needs |
 |---|---|---|---|
-| Reading the screen | 68 of 87 (78%); of the opened ones 68 of 70 (97%) | 1 | The game in English, Windowed Fullscreen |
-| Sound | 51 of 87 (59%) | 3 | Windows 10 2004 or newer |
-| **Screen and sound together** (the default) | **73 of 87 (84%)** | 2 | |
+| **Reading the screen** (the default) | **68 of 87 (78%)**; of the opened ones 68 of 70 (97%) | 1 | The game in English, Windowed Fullscreen |
+| Screen, and sound for what it missed | 69 of 87 (79%) | 1 | Sound turned on |
+| Sound alone | 51 of 87 (59%) | 3 | Windows 10 2004 or newer |
 | Replay, after the match | All of them (100%)* | None | *Record Replays* on |
 
 \* Unless Fortnite's replay recorder fell behind; the screen's count then stays (see [Exact count](#exact-count-replays)).
 
-The screen never sees chests that were broken rather than opened (they give no "+XP CHEST"), and neither way counts
-the ones your teammates open. The replay counts those too.
+The screen never sees chests that were broken rather than opened (they give no "+XP CHEST"). The replay counts those
+too.
 
 #### Reading the screen
 
@@ -170,10 +171,10 @@ and so on. Every line is read, and an "X2" counts twice. Below, five chests open
 
 > [!NOTE]
 > **For now the screen is only read in English.** The counter looks for the English word CHEST, so with the game in
-> another language it finds nothing. Other languages will come in a later version. Until then, turn reading the
-> screen off (see below) and the sound counts instead.
+> another language it finds nothing. Other languages will come in a later version. Until then, turn the sound on
+> (see below): it counts while the screen finds nothing.
 
-#### Sound (for what the screen missed, in development)
+#### Sound (off by default, in development)
 
 > **Counting by sound is still in development.** It is good enough to follow a match live, but it can miss a chest or
 > count one too many (a wall breaking near a chest, for example). This does not affect your totals: every match is
@@ -217,12 +218,13 @@ Short clips were also checked one frame per second, to find chests the detector 
 
 ### When to turn what on or off
 
-All in *Settings → Counting*. By default everything is on, which suits most players.
+All in *Settings → Counting*. By default the screen counts and the sound is off, which suits most players.
 
 | Situation | What to do |
 |---|---|
-| The game is not in English | Turn **reading the screen** off. It finds nothing, so only the sound counts anyway, just 3 seconds late. |
-| You play in exclusive Fullscreen | Nothing: the counter sees it gets no picture of the game and the sound counts instead. Windowed Fullscreen is better. |
+| The game is not in English | Turn the **sound** on: the screen finds nothing, so the sound counts. |
+| You play in exclusive Fullscreen | Turn the **sound** on: the screen gets no picture of the game there. Windowed Fullscreen is better. |
+| You want the chests the screen missed counted live too | Turn the **sound** on. It then counts only what it is very sure of. |
 | Stretched resolution or a changed HUD scale, and *Match* stays at 0 when you open chests | Turn **reading the screen** off. |
 | The sound counts chests you did not open | Turn **sound** off. |
 | The game stutters or your FPS drops | First turn **Record Replays off** in Fortnite and keep live counting on: the replay recording is the heaviest part. If it still stutters, turn **reading the screen** off too: while the screen is read, Windows has to compose every frame of the game. |

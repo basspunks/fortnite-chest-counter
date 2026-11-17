@@ -352,7 +352,7 @@ void app.whenReady().then(() => {
     push();
   };
 
-  const heardChest = (at: number): void => {
+  const heardChest = (at: number, sure: number): void => {
     // only in a match: the lobby's music can sound like a chest, and so can anything while it is not known where the
     // player is (no match line in Fortnite's log yet)
     if (matches.phase !== 'match') return;
@@ -362,10 +362,12 @@ void app.whenReady().then(() => {
       run('add', 'sound');
       return;
     }
-    // While the screen is read, its "+XP CHEST" text counts first. The sound counts a chest only if the screen saw
-    // none from 1 s before to 3 s after it (the text shows about a second after the sound): 73 of 87 chests in tests,
-    // against 68 by screen alone and 51 by sound alone.
+    // While the screen is read, its "+XP CHEST" text counts first. The sound counts a chest only if it is very sure
+    // and the screen saw none from 1 s before to 3 s after it (the text shows about a second after the sound). A less
+    // sure sound counted chests the player did not open (a teammate's next to them, 4 in one match): sure enough, 69
+    // of 87 chests in tests with 1 false count, the same as the screen alone (68).
     push();
+    if (sure < SOUND_AFTER_SCREEN.sure) return;
     const heardMs = Date.now();
     setTimeout(() => {
       const seenNear = seenAtMs.some((ms) => ms >= heardMs - SOUND_AFTER_SCREEN.beforeMs && ms <= heardMs + SOUND_AFTER_SCREEN.afterMs);
@@ -377,7 +379,7 @@ void app.whenReady().then(() => {
   let screenStatus = 'off';
   let seen = 0;
   const seenAtMs: number[] = []; // when the last chests were seen on screen
-  const SOUND_AFTER_SCREEN = { beforeMs: 1000, afterMs: 3000 } as const;
+  const SOUND_AFTER_SCREEN = { beforeMs: 1000, afterMs: 3000, sure: 0.8 } as const;
   const readingScreen = (): boolean => settings.liveCount && settings.screenCount && screenStatus === 'on';
   ipcMain.on('screen-status', (_event, status: unknown) => {
     if (typeof status !== 'string' || status === screenStatus) return;
@@ -494,7 +496,7 @@ void app.whenReady().then(() => {
     (samples) => {
       audioCheck.chunks++;
       audioCheck.loudest = Math.max(audioCheck.loudest, ...samples.map(Math.abs));
-      gameDetector.push(samples).forEach((chest) => heardChest(chest.at));
+      gameDetector.push(samples).forEach((chest) => heardChest(chest.at, chest.sure));
     },
     () => {
       if (gameAudio.status === 'on') gameDetector = new ChestDetector(24000, settings.sensitivity); // fresh for every game run

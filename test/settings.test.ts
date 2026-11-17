@@ -41,7 +41,7 @@ describe('settings', () => {
       keys: { add: 'Ctrl+K', undo: 'F7', newMatch: 'F9', toggleBar: 'Ctrl+Shift+O' },
       pad: { add: [4, 5], undo: [], newMatch: [], toggleBar: [] },
       opacity: 0.45,
-      autoCount: true,
+      autoCount: false,
       sensitivity: 0.5,
       showHistory: true,
       theme: 'dark',
@@ -61,8 +61,8 @@ describe('settings', () => {
     expect(readSettings({ sensitivity: 0.9, showHistory: false })).toMatchObject({ sensitivity: 0.9, showHistory: false });
     expect(readSettings({ sensitivity: 3 }).sensitivity).toBe(0.5);
     expect(readSettings({ fortniteOnly: false })).not.toHaveProperty('fortniteOnly'); // the app never hears the whole PC
-    expect(readSettings({ autoCount: false }).autoCount).toBe(false);
-    expect(readSettings({ autoCount: 'no' }).autoCount).toBe(true);
+    expect(readSettings({ autoCount: true }).autoCount).toBe(true);
+    expect(readSettings({ autoCount: 'no' }).autoCount).toBe(false);
   });
 
   it('keeps the background opacity between 0 (no background) and 1', () => {

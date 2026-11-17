@@ -4,6 +4,8 @@ export interface ChestSound {
   /** Seconds since the first sample was pushed. */
   readonly at: number;
   readonly kind: ChestKind;
+  /** How sure the judge is that it was a chest (0–1). */
+  readonly sure: number;
 }
 
 /**
@@ -166,7 +168,8 @@ export class ChestDetector {
       const at = (f * this.hop + N / 2) / this.rate;
       if (at - this.lastCandidate <= MIN_GAP_SECONDS) continue;
       this.lastCandidate = at;
-      if (chestLikelihood(candidate.features) >= this.cut) found.push({ at, kind: candidate.kind });
+      const sure = chestLikelihood(candidate.features);
+      if (sure >= this.cut) found.push({ at, kind: candidate.kind, sure });
     }
     this.forgetOld();
     return found;
