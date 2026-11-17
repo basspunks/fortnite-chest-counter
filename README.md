@@ -64,7 +64,19 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   combination, while the game keeps the focus. Keyboard shortcuts work too.
 
 <p align="center">
-  <img src="docs/images/bar-counting.png" alt="A chest counted live" />
+  <img src="docs/images/bar-counting.png" width="45%" alt="A chest counted live" />
+  &nbsp;
+  <img src="docs/images/bar-cat.png" width="45%" alt="The same in cat mode" />
+  <br />
+  <sub>A chest heard live, and the same in cat mode</sub>
+</p>
+
+<p align="center">
+  <img src="docs/images/theme-dark.png" width="32%" alt="Dark theme" />
+  <img src="docs/images/theme-midnight.png" width="32%" alt="Midnight theme" />
+  <img src="docs/images/theme-storm.png" width="32%" alt="Storm theme" />
+  <br />
+  <sub>The three themes: Dark, Midnight and Storm</sub>
 </p>
 
 ### Treasure hunt stats
