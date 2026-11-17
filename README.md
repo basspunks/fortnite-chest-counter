@@ -55,7 +55,8 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
 - **Light on your FPS**: the bar has no running animations and is only redrawn when something on it changes. While
   counting, the whole app uses about 1–3% of one CPU core.
 - **Exact count after every match**: when a match ends, Fortnite's replay of it is read and its exact number of chests
-  replaces the live count. Match, Session, Total and the history are corrected.
+  replaces the live count. Match, Session, Total and the history are corrected, and you see how many of the
+  chests were broken rather than opened.
 - **New matches start by themselves**, from Fortnite's own log. Nothing is counted in the lobby.
 - **Open with Fortnite**: starts with Windows, waits next to the clock, and shows the counter only while the game
   runs.
@@ -136,9 +137,11 @@ own, counting by sound stays off and you can count with your keys or controller.
 The detector learned from real matches: 13 recorded clips in which every sound that looked like a chest was checked
 against the video (91 chest openings, and 60 look-alikes such as breaking boxes and walls, doors and shots). What
 tells them apart best is how long the hum was heard before: a chest hums the whole time you walk up to it.
-Tested on clips it had not learned from, it finds about 86% of the chests, against 68% for the first version (unreleased). Rare
-(purple) chests are still often missed, as the recordings had almost none, and so is a chest opened right next to
-another one; the replay counts them after the match. 
+Tested on clips it had not learned from, it finds about 86% of the chests, against 68% for the first version (unreleased).
+It was then checked against 4 more clips, this time using the matches' own replays as the answer: it heard 48 of the
+63 chests opened there, with 2 false alarms. Still often missed: spirit chests (behind the vault doors), chests broken
+rather than opened (they make no opening sound) and a chest opened right next to another one. The replay counts them
+all after the match.
 
 Below, spectrograms of those recordings (time from left to right, pitch from bottom to top).
 
