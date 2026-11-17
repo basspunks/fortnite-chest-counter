@@ -70,6 +70,28 @@ describe('MatchLog', () => {
     log.stop();
   });
 
+  it('says at once that the game is in the lobby when the app is opened after Fortnite', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
+    writeFileSync(file, `${LINES.boot}\n${LINES.warmup}\n${LINES.back}\n${LINES.setting}\n`);
+    const events: MatchEvent[] = [];
+    const log = new MatchLog((event) => events.push(event), file);
+    log.start(60_000);
+    await new Promise((done) => setImmediate(done));
+    expect(events).toEqual(['lobby']);
+    log.stop();
+  });
+
+  it('says nothing about the past when the game was in a match', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
+    writeFileSync(file, `${LINES.boot}\n${LINES.warmup}\n${LINES.step}\n`);
+    const events: MatchEvent[] = [];
+    const log = new MatchLog((event) => events.push(event), file);
+    log.start(60_000);
+    await new Promise((done) => setImmediate(done));
+    expect(events).toEqual([]);
+    log.stop();
+  });
+
   it('waits quietly while there is no log', () => {
     const log = new MatchLog(() => undefined, join(tmpdir(), 'no-such-dir', 'FortniteGame.log'));
     expect(log.found()).toBe(false);

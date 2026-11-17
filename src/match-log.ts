@@ -43,11 +43,35 @@ export class MatchLog {
     private readonly file = defaultLogFile(),
   ) {}
 
-  /** Starts at the end of the file: what happened before the app started does not count. */
+  /**
+   * Starts at the end of the file: what happened before the app started does not count. One thing is taken from
+   * before: if the game is already back in the lobby, that is said at once (the app was opened after Fortnite, and
+   * would otherwise count the lobby's sounds until the next match).
+   */
   start(everyMs = 1000): void {
     this.offset = this.size();
     this.head = this.firstBytes();
+    if (this.lastEventSoFar() === 'lobby') setImmediate(() => this.onEvent('lobby'));
     this.timer = setInterval(() => this.poll(), everyMs);
+  }
+
+  /** The last match event already in the log (its last 4 MB), if any. */
+  private lastEventSoFar(): MatchEvent | undefined {
+    const size = this.offset ?? 0;
+    const length = Math.min(size, 4 * 1024 * 1024);
+    if (length === 0) return undefined;
+    const buffer = Buffer.alloc(length);
+    try {
+      const handle = openSync(this.file, 'r');
+      try {
+        readSync(handle, buffer, 0, length, size - length);
+      } finally {
+        closeSync(handle);
+      }
+    } catch {
+      return undefined;
+    }
+    return matchEvents(buffer.toString('utf8')).at(-1);
   }
 
   stop(): void {
