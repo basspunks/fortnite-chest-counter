@@ -14,5 +14,7 @@
   </PropertyGroup>
   <ItemGroup>
     <ProjectReference Include="..\lib\FortniteReplayReader\FortniteReplayReader.csproj" />
+    <!-- the treasure hunt prizes: needed to name a treasure found in a replay -->
+    <EmbeddedResource Include="..\..\content\content.json" LogicalName="content.json" />
   </ItemGroup>
 </Project>
