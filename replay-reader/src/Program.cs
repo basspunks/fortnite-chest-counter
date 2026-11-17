@@ -28,6 +28,8 @@ try
     {
         ok = true,
         chests = match.ChestsOpened,
+        // of them, broken (pickaxe, explosion, vehicle) rather than opened
+        destroyed = match.Chests.Count(chest => chest.Destroyed),
         ammoBoxes = match.AmmoBoxesOpened,
         counts = GameModes.Counts(match),
         mode = match.Playlist,
@@ -39,6 +41,9 @@ try
         kinds = match.Chests.GroupBy(chest => KindKey(chest.Kind)).ToDictionary(group => group.Key, group => group.Count()),
         // seconds into the match of each chest, to tell which ones were opened during a Treasure Hour
         chestSeconds = match.Chests.Select(chest => Math.Round(chest.TimeSeconds, 1)),
+        // each chest: when, what kind, and whether it was broken rather than opened (no opening sound then);
+        // used to check the sound detector against real matches
+        chestList = match.Chests.Select(chest => new { seconds = Math.Round(chest.TimeSeconds, 1), kind = KindKey(chest.Kind), destroyed = chest.Destroyed }),
         // treasure hunt rewards the player got; prizeId names the prize in content.json when it is known
         treasures = match.TreasureFinds.Select(find => new
         {

@@ -24,6 +24,8 @@ export interface MatchRecord {
   /** A treasure hunt Battle Royale match. Others are kept in the list but not in the totals. */
   readonly counted: boolean;
   readonly kinds?: Readonly<Record<string, number>>;
+  /** Of the chests, how many were broken rather than opened (from the replay). */
+  readonly broken?: number;
   readonly treasures?: readonly Treasure[];
   readonly teamChests?: number;
   /** Chests opened during a Treasure Hour, and that hour's boosts. */
@@ -63,6 +65,8 @@ export interface Report {
   /** "2026-11-16" → chests, last 7 days with matches, newest first. */
   readonly perDay: readonly (readonly [string, number])[];
   readonly kinds: Readonly<Record<string, number>>;
+  /** Chests broken rather than opened, in counted matches read from replays. */
+  readonly broken: number;
   readonly treasures: number;
   /** One treasure every N chests (from matches read from replays). */
   readonly chestsPerTreasure: number | null;
@@ -172,6 +176,7 @@ export class Records {
       manualChests,
       perDay: [...perDay.entries()].filter(([day]) => Date.parse(day) >= weekAgo - 86_400_000).sort((a, b) => b[0].localeCompare(a[0])),
       kinds,
+      broken: counted.reduce((sum, m) => sum + (m.broken ?? 0), 0),
       treasures,
       chestsPerTreasure: treasures === 0 ? null : replayChests / treasures,
       teamChests: counted.reduce((sum, m) => sum + (m.teamChests ?? 0), 0),

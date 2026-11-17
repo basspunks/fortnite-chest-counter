@@ -17,7 +17,7 @@ interface ShownState {
   readonly listening: string;
   readonly fortniteProblem: string;
   readonly heard: number;
-  readonly replay: { readonly status: string; readonly chests?: number; readonly heard?: number; readonly reason?: string };
+  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly reason?: string };
   readonly phase:'match' | 'lobby' | 'unknown';
   readonly history: { readonly last: readonly number[]; readonly average: number | null; readonly matches: number };
   readonly locked: boolean;
@@ -40,6 +40,7 @@ interface ShownStats {
     readonly manualChests: number;
     readonly perDay: readonly (readonly [string, number])[];
     readonly kinds: Readonly<Record<string, number>>;
+    readonly broken: number;
     readonly treasures: number;
     readonly chestsPerTreasure: number | null;
     readonly teamChests: number;
@@ -311,6 +312,8 @@ function showStats(state: ShownState): void {
     squadRow(r.totalChests - r.manualChests + r.teamChests, r.teamChests),
     ...(r.skipped > 0 ? [row('Other modes (not counted)', String(r.skipped))] : []),
     ...(kinds.length > 0 ? [part('Chest kinds', 'sub', 'div'), ...kinds.map(([kind, n]) => row(KIND_LABELS[kind] ?? kind, String(n)))] : []),
+    // broken chests count like opened ones, but make no opening sound: the live count by sound misses them
+    ...(r.broken > 0 ? [row('Broken, not opened (counted)', String(r.broken))] : []),
     ...(r.perDay.length > 0 ? [part('Last days', 'sub', 'div'), ...r.perDay.map(([day, n]) => row(day, String(n)))] : []),
   );
 
@@ -356,7 +359,7 @@ function showSound(state: ShownState): void {
   byId('replay-status').textContent = replay.status === 'checking'
       ? 'Reading the replay of the last match…'
       : replay.status === 'done'
-        ? `Last match: ${replay.chests} chests from the replay (sound heard ${replay.heard}).`
+        ? `Last match: ${replay.chests} chests from the replay${replay.broken ? `, ${replay.broken} of them broken` : ''} (sound heard ${replay.heard}).`
         : replay.status === 'missing'
           ? 'No replay found. Turn on Record Replays in Fortnite.'
           : replay.status === 'skipped'

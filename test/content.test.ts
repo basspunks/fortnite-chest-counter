@@ -64,12 +64,12 @@ describe('records', () => {
 
   it('builds the report from counted matches and additions by hand', () => {
     const records = new Records();
-    records.add(match({ chests: 33, kinds: { normal: 31, buried: 1, spirit: 1 }, teamChests: 16, treasures: [{ prizeId: 'DelilahPrize:dpid_item19', golden: true }] }));
+    records.add(match({ chests: 33, broken: 4, kinds: { normal: 31, buried: 1, spirit: 1 }, teamChests: 16, treasures: [{ prizeId: 'DelilahPrize:dpid_item19', golden: true }] }));
     records.add(match({ chests: 12, kinds: { normal: 11, rare: 1 } }));
     records.add(match({ chests: 40, counted: false, mode: 'Playlist_Ranked' }));
     records.addManual({ id: 'a', chests: 100, addedMs: 0, kind: 'hand' });
     const report = records.report(content, at('2026-11-17T12:00:00Z'));
-    expect(report).toMatchObject({ totalChests: 145, matches: 2, best: 33, manualChests: 100, treasures: 1, teamChests: 16, skipped: 1 });
+    expect(report).toMatchObject({ totalChests: 145, matches: 2, best: 33, manualChests: 100, treasures: 1, teamChests: 16, skipped: 1, broken: 4 });
     expect(report.average).toBeCloseTo(22.5);
     expect(report.kinds).toEqual({ normal: 42, buried: 1, spirit: 1, rare: 1 });
     expect(report.chestsPerTreasure).toBe(45);

@@ -61,7 +61,7 @@ export interface AppState {
    * Replay check of the last finished match: 'off', 'checking', 'done' (with replay and sound counts),
    * 'missing' (no replay: recording is off in Fortnite) or 'failed' (with the reason).
    */
-  readonly replay: { readonly status: string; readonly chests?: number; readonly heard?: number; readonly reason?: string };
+  readonly replay: { readonly status: string; readonly chests?: number; readonly broken?: number; readonly heard?: number; readonly reason?: string };
   readonly onlyHuntMatches: boolean;
   readonly notifications: boolean;
   readonly cat: boolean;
@@ -363,6 +363,7 @@ void app.whenReady().then(() => {
       ...(result.mode ? { mode: result.mode } : {}),
       counted: !settings.onlyHuntMatches || result.counts !== false,
       kinds: result.kinds ?? {},
+      broken: result.destroyed ?? 0,
       treasures: (result.treasures ?? []).map((t) => ({ ...(t.prizeId ? { prizeId: t.prizeId } : {}), ...(t.item ? { item: t.item } : {}), golden: t.golden })),
       teamChests: result.teamChests ?? 0,
       ...hourSplit(content, startMs, result.chestSeconds ?? []),
@@ -390,7 +391,7 @@ void app.whenReady().then(() => {
         const names = found.map((t) => (t.prizeId ? findPrize(content, t.prizeId)?.prize.name : undefined) ?? t.item ?? 'a treasure');
         notify('Treasure found!', `Last match: ${names.join(', ')}`);
       }
-      replay = { status: record.counted ? 'done' : 'skipped', chests: result.chests, heard: heardThisMatch, reason: result.mode ?? '' };
+      replay = { status: record.counted ? 'done' : 'skipped', chests: result.chests, broken: result.destroyed ?? 0, heard: heardThisMatch, reason: result.mode ?? '' };
     } else if (result === undefined) {
       replay = { status: 'missing' };
     } else {

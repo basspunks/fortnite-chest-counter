@@ -6,6 +6,8 @@ import { join } from 'node:path';
 export interface ReplayResult {
   readonly ok: boolean;
   readonly chests?: number;
+  /** Of the chests, how many were broken rather than opened. */
+  readonly destroyed?: number;
   readonly mode?: string;
   readonly player?: string;
   readonly error?: string;
