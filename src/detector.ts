@@ -14,9 +14,11 @@ export interface ChestSound {
  * 2. A learned judge decides which candidates are chests. It was trained on 13 recorded clips where every
  *    candidate was checked against the video (91 chests, 60 look-alikes: breaking boxes and walls, doors, shots...).
  *    What tells them apart best is how long the hum was heard before: a chest hums the whole time you walk up to it.
+ *    Checked since against 4 more clips labelled from their matches' replays: it heard 48 of their 63 opened chests,
+ *    with 2 false alarms; a judge retrained with them did not do better overall, so this one stays.
  *
- * Normal (gold) and rare (purple) chests hum on different notes. The recordings had almost only gold chests (one
- * rare), so a rare chest is often not heard: the replay counts it after the match.
+ * Normal (gold) and rare (purple) chests hum on different notes. Spirit chests (behind the vault doors) are mostly
+ * missed, and chests broken rather than opened make no opening sound: the replay counts both after the match.
  */
 const TONES: Readonly<Record<ChestKind, readonly number[]>> = {
   gold: [392, 784, 1568, 1760, 2349, 3136],
