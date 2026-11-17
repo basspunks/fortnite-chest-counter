@@ -25,6 +25,7 @@ interface ShownState {
   readonly notifications: boolean;
   readonly cat: boolean;
   readonly screenCount: boolean;
+  readonly liveCount: boolean;
   readonly screenStatus: string;
   readonly seen: number;
   /** Where the "+XP CHEST" text shows, at 1080p, from the screen's centre. */
@@ -93,6 +94,7 @@ interface ChestsApi {
   notifications(on: boolean): void;
   cat(on: boolean): void;
   screenCount(on: boolean): void;
+  liveCount(on: boolean): void;
   screenStatus(status: string): void;
   screenFrame(pixels: Uint8ClampedArray): void;
   copyObsPath(): void;
@@ -149,14 +151,20 @@ function show(state: ShownState): void {
   byId('opacity-value').textContent = state.opacity === 0 ? 'None' : `${Math.round(state.opacity * 100)} %`;
   input('show-history').checked = state.showHistory;
   input('cat').checked = state.cat;
+  input('live-count').checked = state.liveCount;
+  // live counting off: its two ways are greyed out, and only the replays and your keys count
+  byId('live-ways').classList.toggle('off', !state.liveCount);
+  input('screen-count').disabled = !state.liveCount;
+  input('auto-count').disabled = !state.liveCount;
   input('screen-count').checked = state.screenCount;
-  readScreen(state.screenCount && state.phase === 'match');
+  readScreen(state.liveCount && state.screenCount && state.phase === 'match');
   byId('screen-status').textContent =
-    !state.screenCount ? 'Off: chests are counted by sound.'
+    !state.liveCount ? 'Off: live counting is off.'
+    : !state.screenCount ? 'Off: chests are counted by sound.'
       : state.screenStatus === 'on' ? `Reading the screen · ${state.seen} seen`
         : state.phase !== 'match' ? 'Reads the screen during matches only.'
           : `Cannot read the screen: ${state.screenStatus}. Counting by sound.`;
-  setDot('screen-dot', !state.screenCount ? 'off' : state.screenStatus === 'on' ? 'on' : state.phase !== 'match' ? 'wait' : 'bad');
+  setDot('screen-dot', !state.liveCount || !state.screenCount ? 'off' : state.screenStatus === 'on' ? 'on' : state.phase !== 'match' ? 'wait' : 'bad');
   input('open-with-fortnite').checked = state.openWithFortnite;
   input('only-hunt').checked = state.onlyHuntMatches;
   input('notifications').checked = state.notifications;
@@ -351,7 +359,7 @@ function showSound(state: ShownState): void {
 
   const paused = state.listening === 'on' && state.phase === 'lobby';
   const ear = state.listening === 'on' ? (paused ? 'wait' : 'on') : state.listening === 'waiting' ? 'wait' : 'off';
-  const reading = state.screenCount && state.screenStatus === 'on';
+  const reading = state.liveCount && state.screenCount && state.screenStatus === 'on';
   // the dot under 🎧: green while chests are counted by themselves (screen or sound), red otherwise
   byId('ear').className = `ear ${ear === 'on' || reading ? 'on' : 'off'}`;
   setDot('sound-dot', ear);
@@ -359,7 +367,9 @@ function showSound(state: ShownState): void {
     ? 'Counting from the screen (the sound is a backup)'
     : paused ? 'In the lobby: not counting' : ear === 'on' ? 'Counting by sound' : 'Not counting';
   byId('sound-status').textContent =
-    state.listening === 'off'
+    !state.liveCount
+      ? 'Off: live counting is off.'
+      : state.listening === 'off'
       ? 'Off. Count with your keys or controller.'
       : state.listening === 'waiting'
         ? 'Waiting for Fortnite to start.'
@@ -512,6 +522,7 @@ input('auto-count').addEventListener('change', () => app.autoCount(input('auto-c
 input('show-history').addEventListener('change', () => app.showHistory(input('show-history').checked));
 input('cat').addEventListener('change', () => app.cat(input('cat').checked));
 input('screen-count').addEventListener('change', () => app.screenCount(input('screen-count').checked));
+input('live-count').addEventListener('change', () => app.liveCount(input('live-count').checked));
 input('open-with-fortnite').addEventListener('change', () => app.openWithFortnite(input('open-with-fortnite').checked));
 input('only-hunt').addEventListener('change', () => app.onlyHunt(input('only-hunt').checked));
 input('notifications').addEventListener('change', () => app.notifications(input('notifications').checked));
@@ -631,8 +642,8 @@ function lookAtScreen(): void {
   const height = screenVideo.videoHeight;
   const AREA = shown?.screenArea;
   if (width === 0 || height === 0 || AREA === undefined) return;
-  screenCanvas.width = AREA.width;
-  screenCanvas.height = AREA.height;
+  if (screenCanvas.width !== AREA.width) screenCanvas.width = AREA.width; // setting it clears the canvas: only once
+  if (screenCanvas.height !== AREA.height) screenCanvas.height = AREA.height;
   // the HUD scales with the screen's height: the area is given at 1080p
   const scale = height / 1080;
   screenContext.drawImage(
@@ -647,5 +658,12 @@ function lookAtScreen(): void {
   darkFrames = lit === 0 ? darkFrames + 1 : 0;
   if (darkFrames === 50) app.screenStatus('the game is not visible (play in Windowed Fullscreen)');
   if (darkFrames === 0 && shown?.screenStatus !== 'on') app.screenStatus('on');
-  if (darkFrames === 0) app.screenFrame(pixels); // the app looks for the word CHEST in it
+  if (darkFrames !== 0) return;
+  // the "+XP" text has a purple edge: a frame without any (nearly every one) is not sent to be looked at
+  let purple = 0;
+  for (let i = 0; i < pixels.length && purple < 15; i += 4) {
+    const r = pixels[i]!, g = pixels[i + 1]!, b = pixels[i + 2]!;
+    if (r > 150 && b > 170 && g < r - 40 && !(r > 200 && g > 190 && b > 200)) purple++;
+  }
+  if (purple >= 15) app.screenFrame(pixels); // the app looks for the word CHEST in it
 }

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { ChestTextWatcher, chestScore, MATCH, textMask } from '../src/chest-text';
+import { ChestTextWatcher, chestScore, chestsShown, MATCH, textMask } from '../src/chest-text';
 import fixture from './fixtures/chest-text.json';
 
 /** A mask from the test data: run-length coded rows, 0 nothing, 1 purple edge, 2 white letter. */
@@ -26,6 +26,11 @@ describe('the CHEST text on real frames', () => {
       else expect(score).toBeLessThan(MATCH);
     });
   }
+  for (const frame of fixture.frames.filter((f) => 'shown' in f)) {
+    it(`reads each line of "${frame.what}"`, () => {
+      expect(chestsShown(mask(frame), frame.width, frame.height)).toEqual((frame as { shown: number[] }).shown);
+    });
+  }
 });
 
 describe('textMask', () => {
@@ -38,9 +43,24 @@ describe('textMask', () => {
 describe('ChestTextWatcher', () => {
   it('counts one chest per appearance of the text, however many frames show it', () => {
     const watcher = new ChestTextWatcher();
-    const seen = [0, 200, 400, 600, 800].map((ms) => watcher.push(0.9, ms));
-    expect(seen).toEqual([true, false, false, false, false]);
-    expect(watcher.push(0.1, 1000)).toBe(false); // gone
-    expect(watcher.push(0.9, 2500)).toBe(true); // the next chest
+    const opened = [0, 200, 400, 600, 800].map((ms) => watcher.push([1], ms));
+    expect(opened).toEqual([0, 1, 0, 0, 0]); // read the same twice first
+    expect(watcher.push([], 1000)).toBe(0); // gone
+    expect([2500, 2700].map((ms) => watcher.push([1], ms))).toEqual([0, 1]); // the next chest
+  });
+
+  it('counts every chest of a list opened one after another', () => {
+    // RARE CHEST, then X2, then SPRITE CHEST under it, then RARE CHEST, then that one X2 too: 5 chests
+    const frames: number[][] = [[1], [1], [2], [2], [2, 1], [2, 1], [2, 1, 1], [2, 1, 1], [2, 1, 2], [2, 1, 2]];
+    const watcher = new ChestTextWatcher();
+    const opened = frames.map((shown, i) => watcher.push(shown, i * 200));
+    expect(opened.reduce((s, n) => s + n, 0)).toBe(5);
+  });
+
+  it('counts nothing for a frame read differently once, or a line lost for a moment', () => {
+    const watcher = new ChestTextWatcher();
+    const frames: number[][] = [[1], [1], [2], [1], [1], [2, 1], [2], [2, 1], [2, 1]];
+    const opened = frames.map((shown, i) => watcher.push(shown, i * 200));
+    expect(opened.reduce((s, n) => s + n, 0)).toBe(3);
   });
 });

@@ -4,7 +4,7 @@ import { join } from 'node:path';
 
 import { ChestCounter, type Counts } from './counter';
 import { chances, findPrize, hourToAnnounce, kindName, loadContent, nextTreasureHour, refreshContent, weekAt, type Chance } from './content';
-import { AREA, ChestTextWatcher, chestScore, textMask } from './chest-text';
+import { AREA, ChestTextWatcher, chestsShown, textMask } from './chest-text';
 import { ChestDetector } from './detector';
 import { FortniteWatch } from './fortnite-watch';
 import { GameAudio } from './game-audio';
@@ -67,6 +67,7 @@ export interface AppState {
   readonly notifications: boolean;
   readonly cat: boolean;
   readonly screenCount: boolean;
+  readonly liveCount: boolean;
   /** Reading the screen: 'on', 'off', or why it cannot. */
   readonly screenStatus: string;
   /** Chests seen on screen since the app was started. */
@@ -245,6 +246,7 @@ void app.whenReady().then(() => {
     notifications: settings.notifications,
     cat: settings.cat,
     screenCount: settings.screenCount,
+    liveCount: settings.liveCount,
     screenStatus,
     seen,
     screenArea: AREA,
@@ -364,7 +366,7 @@ void app.whenReady().then(() => {
   // The window reads the "+XP CHEST" text off the screen during matches (src/chest-text.ts) and says when it sees it.
   let screenStatus = 'off';
   let seen = 0;
-  const readingScreen = (): boolean => settings.screenCount && screenStatus === 'on';
+  const readingScreen = (): boolean => settings.liveCount && settings.screenCount && screenStatus === 'on';
   ipcMain.on('screen-status', (_event, status: unknown) => {
     if (typeof status !== 'string' || status === screenStatus) return;
     screenStatus = status;
@@ -373,11 +375,13 @@ void app.whenReady().then(() => {
   const textWatcher = new ChestTextWatcher();
   ipcMain.on('screen-frame', (_event, pixels: unknown) => {
     if (!(pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) || pixels.length !== AREA.width * AREA.height * 4) return;
-    if (!settings.screenCount || matches.phase === 'lobby') return;
-    const score = chestScore(textMask(pixels, AREA.width, AREA.height), AREA.width, AREA.height);
-    if (!textWatcher.push(score, Date.now())) return;
-    seen++;
-    run('add', 'screen');
+    if (!settings.liveCount || !settings.screenCount || matches.phase === 'lobby') return;
+    // chests opened one after another are listed together ("RARE CHEST X2", "SPRITE CHEST"): each one counts
+    const shown = chestsShown(textMask(pixels, AREA.width, AREA.height), AREA.width, AREA.height);
+    for (let opened = textWatcher.push(shown, Date.now()); opened > 0; opened--) {
+      seen++;
+      run('add', 'screen');
+    }
   });
   // The window asks for the screen the bar is on (a picture only, no sound); only the XP area is looked at, and no
   // picture is ever kept or sent anywhere.
@@ -479,12 +483,12 @@ void app.whenReady().then(() => {
     },
   );
   const listening = (): string => {
-    if (!settings.autoCount) return 'off';
+    if (!settings.liveCount || !settings.autoCount) return 'off';
     if (gameAudio.status === 'unsupported') return 'unsupported';
     return gameAudio.status === 'on' ? 'on' : 'waiting';
   };
   const updateGameAudio = (): void => {
-    if (settings.autoCount) gameAudio.start();
+    if (settings.liveCount && settings.autoCount) gameAudio.start();
     else gameAudio.stop();
     push();
   };
@@ -893,6 +897,12 @@ void app.whenReady().then(() => {
     settings = withOpacity(settings, opacity);
     saveSettings();
     push();
+  });
+  ipcMain.on('live-count', (_event, on: unknown) => {
+    if (typeof on !== 'boolean') return;
+    settings = { ...settings, liveCount: on };
+    saveSettings();
+    updateGameAudio(); // the window stops reading the screen by itself
   });
   ipcMain.on('auto-count', (_event, on: unknown) => {
     if (typeof on !== 'boolean') return;
