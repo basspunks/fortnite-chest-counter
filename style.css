@@ -1,9 +1,9 @@
 /* ---------- themes (picked in Look; set on <body data-theme="...">) ---------- */
 :root,
 body[data-theme='dark'] {
-  --gold: #0c0c0e; /* the accent: numbers, switches, highlights (black in Dark, with a white edge) */
-  --gold-deep: #000;
-  --on-gold: #f5f5f7;
+  --gold: #ffc93c; /* the accent: numbers, switches, highlights (gold in Dark, blue in Midnight, purple in Storm) */
+  --gold-deep: #e09a12;
+  --on-gold: #2b1f00;
   --ink: #f2f2f3;
   --soft: #d4d4d8; /* labels on the bar */
   --muted: #9a9aa3;
@@ -54,41 +54,6 @@ body[data-theme='storm'] {
   --field: #33224f;
   --nav: #0f0819;
   --off: #4a3a66;
-}
-
-/* Dark's accent is black: text in it gets a thin white edge, and accent borders and filled parts a white ring */
-body[data-theme='dark'] {
-  --edge: -1px -1px 0 #fff, 1px -1px 0 #fff, -1px 1px 0 #fff, 1px 1px 0 #fff;
-}
-
-body[data-theme='dark'] :is(.stat.main b, .history b, .pop) {
-  text-shadow: var(--edge);
-}
-
-/* on the dark settings panel, black text would not be read: the accent's text is white there */
-body[data-theme='dark'] :is(h3, .value, .table-row.big b, #collection .week) {
-  color: #fff;
-}
-
-body[data-theme='dark'] .stat.main b.flash {
-  color: #000;
-  text-shadow: var(--edge), 0 0 14px #fff;
-}
-
-/* the open tab's name: white, like the other text on the panel */
-body[data-theme='dark'][data-tab='sound'] nav [data-tab='sound'],
-body[data-theme='dark'][data-tab='controls'] nav [data-tab='controls'],
-body[data-theme='dark'][data-tab='stats'] nav [data-tab='stats'],
-body[data-theme='dark'][data-tab='look'] nav [data-tab='look'] {
-  color: #fff;
-}
-
-body[data-theme='dark'] :is(.themes button.picked, .tile.found) {
-  border-color: #fff;
-}
-
-body[data-theme='dark'] :is(input.switch:checked, #done, .tile .check, .banner.on) {
-  box-shadow: 0 0 0 1px rgb(255 255 255 / 0.85);
 }
 
 * {
