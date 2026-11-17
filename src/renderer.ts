@@ -390,7 +390,15 @@ const ICONS: Readonly<Record<string, string>> = { sound: '🎧', key: '⌨️', 
 
 app.onCounted((action, by) => {
   if (action !== 'add' && action !== 'undo') return;
-  const pop = part(`${action === 'add' ? '+1' : '−1'} ${ICONS[by] ?? ''}`, `pop ${action === 'undo' ? 'minus' : ''}`);
+  const cat = by === 'sound' && document.body.classList.contains('cat'); // cat mode: the cat heard it, not 🎧
+  const pop = part(`${action === 'add' ? '+1' : '−1'} ${cat ? '' : (ICONS[by] ?? '')}`, `pop ${action === 'undo' ? 'minus' : ''}`);
+  if (cat) {
+    const picture = document.createElement('img');
+    picture.src = 'assets/ear-cat.png';
+    picture.className = 'pop-cat';
+    picture.alt = '';
+    pop.append(picture);
+  }
   byId('pops').append(pop);
   pop.addEventListener('animationend', () => pop.remove());
   if (action === 'add') {

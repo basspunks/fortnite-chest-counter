@@ -313,6 +313,12 @@ body.with-history .history {
   color: var(--bad);
 }
 
+/* "+1" with the cat in cat mode, at the size of the emoji it replaces */
+.pop-cat {
+  height: 18px;
+  vertical-align: middle;
+}
+
 @keyframes rise {
   0% {
     opacity: 0;
