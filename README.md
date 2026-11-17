@@ -142,6 +142,14 @@ The same openings in the gameplay footage, frame by frame, used to line up sound
   <img src="docs/images/chest-frames.jpg" alt="Gameplay frames of chests being opened" />
 </p>
 
+Short clips were also checked one frame per second, to find chests the detector did not even notice:
+
+<p align="center">
+  <img src="docs/images/checked-frames-1.jpg" alt="One frame per second of a clip, seconds 0 to 29" />
+  <img src="docs/images/checked-frames-2.jpg" alt="One frame per second of a clip, seconds 30 to 53" />
+  <img src="docs/images/checked-frames-3.jpg" alt="One frame per second of a clip in the storm, seconds 0 to 29" />
+</p>
+
 ## Is it safe?
 
 Chest Counter never touches the game: no injection, no memory reading, nothing in the Fortnite folder. It only reads
