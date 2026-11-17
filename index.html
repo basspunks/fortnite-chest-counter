@@ -58,6 +58,12 @@
 
         <div class="card">
           <label class="row switch-row">
+            <span>Count by reading "+XP CHEST" on screen</span>
+            <input id="screen-count" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">During matches the counter looks at the small area right of the crosshair, five times a second, for the "+600 XP / CHEST" text. Nothing is recorded or sent: each look is dropped at once. Needs Windowed Fullscreen.</p>
+          <p class="status"><span id="screen-dot" class="dot"></span><span id="screen-status"></span></p>
+          <label class="row switch-row">
             <span>Count chests by sound</span>
             <input id="auto-count" type="checkbox" class="switch" />
           </label>

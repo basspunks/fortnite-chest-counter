@@ -24,6 +24,11 @@ interface ShownState {
   readonly onlyHuntMatches: boolean;
   readonly notifications: boolean;
   readonly cat: boolean;
+  readonly screenCount: boolean;
+  readonly screenStatus: string;
+  readonly seen: number;
+  /** Where the "+XP CHEST" text shows, at 1080p, from the screen's centre. */
+  readonly screenArea: { readonly left: number; readonly top: number; readonly width: number; readonly height: number };
   readonly obsFile: string;
   readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean };
   readonly replayFiles: { readonly count: number; readonly megabytes: number; readonly old: number; readonly oldMegabytes: number };
@@ -87,6 +92,9 @@ interface ChestsApi {
   onlyHunt(on: boolean): void;
   notifications(on: boolean): void;
   cat(on: boolean): void;
+  screenCount(on: boolean): void;
+  screenStatus(status: string): void;
+  screenFrame(pixels: Uint8ClampedArray): void;
   copyObsPath(): void;
   installUpdate(): void;
   openWithFortnite(on: boolean): void;
@@ -141,6 +149,14 @@ function show(state: ShownState): void {
   byId('opacity-value').textContent = state.opacity === 0 ? 'None' : `${Math.round(state.opacity * 100)} %`;
   input('show-history').checked = state.showHistory;
   input('cat').checked = state.cat;
+  input('screen-count').checked = state.screenCount;
+  readScreen(state.screenCount && state.phase === 'match');
+  byId('screen-status').textContent =
+    !state.screenCount ? 'Off: chests are counted by sound.'
+      : state.screenStatus === 'on' ? `Reading the screen · ${state.seen} seen`
+        : state.phase !== 'match' ? 'Reads the screen during matches only.'
+          : `Cannot read the screen: ${state.screenStatus}. Counting by sound.`;
+  setDot('screen-dot', !state.screenCount ? 'off' : state.screenStatus === 'on' ? 'on' : state.phase !== 'match' ? 'wait' : 'bad');
   input('open-with-fortnite').checked = state.openWithFortnite;
   input('only-hunt').checked = state.onlyHuntMatches;
   input('notifications').checked = state.notifications;
@@ -389,11 +405,11 @@ function showControls(state: ShownState): void {
 
 // ---- "+1 🎧" when a chest is counted ----
 
-const ICONS: Readonly<Record<string, string>> = { sound: '🎧', key: '⌨️', pad: '🎮', hand: '🖱️' };
+const ICONS: Readonly<Record<string, string>> = { sound: '🎧', screen: '👀', key: '⌨️', pad: '🎮', hand: '🖱️' };
 
 app.onCounted((action, by) => {
   if (action !== 'add' && action !== 'undo') return;
-  const cat = by === 'sound' && document.body.classList.contains('cat'); // cat mode: the cat heard it, not 🎧
+  const cat = (by === 'sound' || by === 'screen') && document.body.classList.contains('cat'); // cat mode: the cat found it
   const pop = part(`${action === 'add' ? '+1' : '−1'} ${cat ? '' : (ICONS[by] ?? '')}`, `pop ${action === 'undo' ? 'minus' : ''}`);
   if (cat) {
     const picture = document.createElement('img');
@@ -491,6 +507,7 @@ input('sensitivity').addEventListener('change', () => app.sensitivity(Number(inp
 input('auto-count').addEventListener('change', () => app.autoCount(input('auto-count').checked));
 input('show-history').addEventListener('change', () => app.showHistory(input('show-history').checked));
 input('cat').addEventListener('change', () => app.cat(input('cat').checked));
+input('screen-count').addEventListener('change', () => app.screenCount(input('screen-count').checked));
 input('open-with-fortnite').addEventListener('change', () => app.openWithFortnite(input('open-with-fortnite').checked));
 input('only-hunt').addEventListener('change', () => app.onlyHunt(input('only-hunt').checked));
 input('notifications').addEventListener('change', () => app.notifications(input('notifications').checked));
@@ -561,3 +578,70 @@ setInterval(() => {
   }
 }, 33);
 
+
+// ---- Reading the "+XP CHEST" text off the screen, during matches only ----
+
+/** Five looks a second at the XP area right of the crosshair; the picture is looked at and dropped, never kept. */
+const SCREEN_EVERY_MS = 200;
+let screenStream: MediaStream | undefined;
+let screenTimer: number | undefined;
+let screenStarting = false;
+let darkFrames = 0;
+const screenVideo = document.createElement('video');
+const screenCanvas = document.createElement('canvas');
+const screenContext = screenCanvas.getContext('2d', { willReadFrequently: true })!;
+
+function readScreen(on: boolean): void {
+  if (on && screenStream === undefined && !screenStarting) void startScreen();
+  if (!on && screenStream !== undefined) stopScreen();
+}
+
+async function startScreen(): Promise<void> {
+  screenStarting = true;
+  try {
+    const stream = await navigator.mediaDevices.getDisplayMedia({ video: { frameRate: { max: 5 } }, audio: false });
+    screenStream = stream;
+    screenVideo.muted = true;
+    screenVideo.srcObject = stream;
+    await screenVideo.play();
+    darkFrames = 0;
+    screenTimer = window.setInterval(lookAtScreen, SCREEN_EVERY_MS);
+    app.screenStatus('on');
+  } catch (error) {
+    app.screenStatus(error instanceof Error ? error.message : String(error));
+  } finally {
+    screenStarting = false;
+  }
+}
+
+function stopScreen(): void {
+  window.clearInterval(screenTimer);
+  screenStream?.getTracks().forEach((track) => track.stop());
+  screenStream = undefined;
+  screenVideo.srcObject = null;
+  app.screenStatus('off');
+}
+
+function lookAtScreen(): void {
+  const width = screenVideo.videoWidth;
+  const height = screenVideo.videoHeight;
+  const AREA = shown?.screenArea;
+  if (width === 0 || height === 0 || AREA === undefined) return;
+  screenCanvas.width = AREA.width;
+  screenCanvas.height = AREA.height;
+  // the HUD scales with the screen's height: the area is given at 1080p
+  const scale = height / 1080;
+  screenContext.drawImage(
+    screenVideo,
+    width / 2 + AREA.left * scale, height / 2 + AREA.top * scale, AREA.width * scale, AREA.height * scale,
+    0, 0, AREA.width, AREA.height,
+  );
+  const pixels = screenContext.getImageData(0, 0, AREA.width, AREA.height).data;
+  // all black for a while: exclusive fullscreen, where Windows gives no picture of the game
+  let lit = 0;
+  for (let i = 0; i < pixels.length; i += 64) if (pixels[i]! + pixels[i + 1]! + pixels[i + 2]! > 30) lit++;
+  darkFrames = lit === 0 ? darkFrames + 1 : 0;
+  if (darkFrames === 50) app.screenStatus('the game is not visible (play in Windowed Fullscreen)');
+  if (darkFrames === 0 && shown?.screenStatus !== 'on') app.screenStatus('on');
+  if (darkFrames === 0) app.screenFrame(pixels); // the app looks for the word CHEST in it
+}

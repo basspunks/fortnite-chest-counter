@@ -37,7 +37,7 @@
 
 > [!NOTE]
 > **Replays must be turned on** (*Settings → Game → Replays → Record Replays: On*). The exact count of each match comes
-> from its replay. Without replays, the counter only has the live count by sound, which is still in development, so
+> from its replay. Without replays, the counter only has the live count (screen and sound), which can miss a chest, so
 > the results will not be 100% accurate.
 
 The exe is not code-signed yet, so Windows SmartScreen may say it "protected your PC" the first time.
@@ -53,7 +53,8 @@ Requires Windows 10 (version 2004 or newer) or Windows 11.
   matches and your average underneath.
 - **Click-through**: the mouse goes straight to the game. Only the settings button reacts when you point at it.
 - **Light on your FPS**: the bar has no running animations and is only redrawn when something on it changes. While
-  counting, the whole app uses about 1–3% of one CPU core.
+  counting, the whole app uses about 1–3% of one CPU core, plus about 6% of one core in matches while it reads the
+  screen (well under 1% of a 6-core CPU).
 - **Exact count after every match**: when a match ends, Fortnite's replay of it is read and its exact number of chests
   replaces the live count. Match, Session, Total and the history are corrected, and you see how many of the
   chests were broken rather than opened.
@@ -123,7 +124,22 @@ Fortnite records a replay of every match. When a match ends, Chest Counter reads
 (`chest-replay.exe`) and takes the number of chests you opened, their kinds, the treasures you found and the chests
 your teammates opened near you. That number is final: it replaces whatever was counted live.
 
-### Live count: sound (in development)
+### Live count: the "+XP CHEST" text on screen
+
+When you open a chest, Fortnite shows "+600 XP" with the word **CHEST** under it, right of the crosshair. During
+matches, the counter looks at that small area five times a second and counts each new CHEST it reads there. Each look
+is dropped at once: nothing is recorded, saved or sent. It needs **Windowed Fullscreen** (in exclusive fullscreen
+Windows gives no picture of the game; the settings then say so and the sound counts instead). You can turn it off in
+*Settings → Counting*.
+
+Checked on 4 clips against the matches' own replays, it read 68 of the 70 chests opened, with 2 false alarms (the
+sound found 47). It cannot see chests that were broken rather than opened, or the ones your teammates open: the replay
+counts those after the match.
+
+### Live count: sound (backup, in development)
+
+While the screen is read, the sound no longer counts on its own; it counts when screen reading is off or cannot work.
+
 
 > **Counting by sound is still in development.** It is good enough to follow a match live, but it can miss a chest or
 > count one too many (a wall breaking near a chest, for example). This does not affect your totals: every match is
@@ -175,6 +191,7 @@ what Fortnite writes for everyone:
 | Replays (read-only) | `%LOCALAPPDATA%\FortniteGame\Saved\Demos` | The exact count after each match |
 | Log | `%LOCALAPPDATA%\FortniteGame\Saved\Logs\FortniteGame.log` | When a match starts and ends |
 | Fortnite's sound | Windows per-application audio capture | The live count |
+| The "+XP CHEST" area of the screen | Windows screen capture, during matches only, never saved | The live count |
 
 Nothing is sent anywhere. The app only downloads the treasure hunt data, the prize pictures, and checks GitHub for a
 newer version. Your data (total, history, settings) stays in `%APPDATA%\chest-counter`.
@@ -199,6 +216,7 @@ npm run dist            # builds release/ChestCounter.exe (one portable file)
 |---|---|
 | `src/main.ts` | The app: windows, tray, keys, matches, replays, updates, settings |
 | `src/renderer.ts`, `index.html`, `style.css` | The counter bar and the settings / stats window |
+| `src/chest-text.ts` | Reading the word CHEST under "+XP" on screen |
 | `src/detector.ts` | The chest sound detector (hum stops, then a burst) |
 | `src/game-audio.ts`, `native/app-audio.ps1` | Hearing only Fortnite's sound (Windows process loopback) |
 | `src/match-log.ts`, `src/match-tracker.ts` | Match start and end from Fortnite's log; one record per match |

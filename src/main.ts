@@ -1,9 +1,10 @@
-import { app, BrowserWindow, clipboard, desktopCapturer, globalShortcut, ipcMain, Menu, nativeImage, Notification, screen, shell, Tray } from 'electron';
+import { app, BrowserWindow, clipboard, desktopCapturer, globalShortcut, ipcMain, Menu, nativeImage, Notification, screen, session, shell, Tray } from 'electron';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { ChestCounter, type Counts } from './counter';
 import { chances, findPrize, hourToAnnounce, kindName, loadContent, nextTreasureHour, refreshContent, weekAt, type Chance } from './content';
+import { AREA, ChestTextWatcher, chestScore, textMask } from './chest-text';
 import { ChestDetector } from './detector';
 import { FortniteWatch } from './fortnite-watch';
 import { GameAudio } from './game-audio';
@@ -29,7 +30,7 @@ const SETTINGS_SIZE = [310, 580] as const;
 const STATS_SIZE = [800, 680] as const;
 
 /** What counted a chest, so the bar can show it. */
-export type CountedBy = 'sound' | 'key' | 'pad' | 'hand';
+export type CountedBy = 'sound' | 'screen' | 'key' | 'pad' | 'hand';
 
 /** A binding the user is choosing right now; `buttons` collects the controller buttons held so far. */
 interface Capture {
@@ -65,6 +66,12 @@ export interface AppState {
   readonly onlyHuntMatches: boolean;
   readonly notifications: boolean;
   readonly cat: boolean;
+  readonly screenCount: boolean;
+  /** Reading the screen: 'on', 'off', or why it cannot. */
+  readonly screenStatus: string;
+  /** Chests seen on screen since the app was started. */
+  readonly seen: number;
+  readonly screenArea: typeof AREA;
   /** This version, and a newer one on GitHub if there is one. */
   readonly update: { readonly current: string; readonly available: string | null; readonly status: 'idle' | 'downloading' | 'failed'; readonly canInstall: boolean };
   /** Where the page for OBS is written. */
@@ -237,6 +244,10 @@ void app.whenReady().then(() => {
     onlyHuntMatches: settings.onlyHuntMatches,
     notifications: settings.notifications,
     cat: settings.cat,
+    screenCount: settings.screenCount,
+    screenStatus,
+    seen,
+    screenArea: AREA,
     update: { current: app.getVersion(), available: newer?.version ?? null, status: updateStatus, canInstall: runningExe !== undefined },
     obsFile: dataFile('overlay.html'),
     replayFiles: (() => {
@@ -342,8 +353,42 @@ void app.whenReady().then(() => {
     if (matches.phase === 'lobby') return; // lobby music, not a chest
     audioCheck.heardAt.push(Math.round(at * 10) / 10);
     heard++;
+    // while the screen is read, its "+XP CHEST" text counts (68 of 70 chests in tests, against 47 by sound)
+    if (readingScreen()) {
+      push();
+      return;
+    }
     run('add', 'sound');
   };
+
+  // The window reads the "+XP CHEST" text off the screen during matches (src/chest-text.ts) and says when it sees it.
+  let screenStatus = 'off';
+  let seen = 0;
+  const readingScreen = (): boolean => settings.screenCount && screenStatus === 'on';
+  ipcMain.on('screen-status', (_event, status: unknown) => {
+    if (typeof status !== 'string' || status === screenStatus) return;
+    screenStatus = status;
+    push();
+  });
+  const textWatcher = new ChestTextWatcher();
+  ipcMain.on('screen-frame', (_event, pixels: unknown) => {
+    if (!(pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) || pixels.length !== AREA.width * AREA.height * 4) return;
+    if (!settings.screenCount || matches.phase === 'lobby') return;
+    const score = chestScore(textMask(pixels, AREA.width, AREA.height), AREA.width, AREA.height);
+    if (!textWatcher.push(score, Date.now())) return;
+    seen++;
+    run('add', 'screen');
+  });
+  // The window asks for the screen the bar is on (a picture only, no sound); only the XP area is looked at, and no
+  // picture is ever kept or sent anywhere.
+  session.defaultSession.setDisplayMediaRequestHandler((_request, answer) => {
+    const display = screen.getDisplayMatching(window.getBounds());
+    void desktopCapturer.getSources({ types: ['screen'] }).then((sources) => {
+      const source = sources.find((s) => s.display_id === String(display.id)) ?? sources[0];
+      if (source) answer({ video: source });
+      else answer({});
+    });
+  });
 
   // Fortnite's log says when a match starts and when the player is back in the lobby.
   // After each match, Fortnite's replay of it gives the exact count: it always replaces what the sound counted.
@@ -532,6 +577,7 @@ void app.whenReady().then(() => {
     if (next === view) return;
     if (view === 'counter') saveBarPlace();
     view = next;
+    if (next === 'settings') void checkForUpdate(); // so "up to date" is never hours old
     if (barHidden) {
       // settings opened while the bar was hidden: they must be seen
       barHidden = false;
@@ -605,9 +651,13 @@ void app.whenReady().then(() => {
   };
   applyOpenWithFortnite();
 
-  // Updates: the app looks for a newer ChestCounter.exe on GitHub Releases at start and every 6 hours, and says so.
+  // Updates: the app looks for a newer ChestCounter.exe on GitHub Releases at start, every hour and when the settings
+  // open (at most once a minute), and says so. It used to look every 6 hours, so a running app said "up to date" too long.
   // "Update" in the settings downloads it, closes the app, swaps the exe and starts the new one.
+  let checkedAt = 0;
   const checkForUpdate = async (): Promise<void> => {
+    if (selfCheck !== undefined || Date.now() - checkedAt < 60_000) return;
+    checkedAt = Date.now();
     const found = await newerRelease(app.getVersion());
     if (found && found.version !== newer?.version) {
       newer = found;
@@ -617,7 +667,7 @@ void app.whenReady().then(() => {
   };
   if (selfCheck === undefined) {
     void checkForUpdate();
-    setInterval(() => void checkForUpdate(), 6 * 3_600_000);
+    setInterval(() => void checkForUpdate(), 3_600_000);
   }
   ipcMain.on('install-update', () => {
     if (newer === undefined || runningExe === undefined || updateStatus === 'downloading') return;
@@ -814,7 +864,7 @@ void app.whenReady().then(() => {
     writeFileSync(dataFile('ticked.json'), JSON.stringify([...ticked]));
     push();
   });
-  const setFlag = (key: 'onlyHuntMatches' | 'openWithFortnite' | 'notifications' | 'cat', on: unknown): void => {
+  const setFlag = (key: 'onlyHuntMatches' | 'openWithFortnite' | 'notifications' | 'cat' | 'screenCount', on: unknown): void => {
     if (typeof on !== 'boolean') return;
     settings = { ...settings, [key]: on };
     saveSettings();
@@ -824,6 +874,7 @@ void app.whenReady().then(() => {
   ipcMain.on('only-hunt', (_event, on: unknown) => setFlag('onlyHuntMatches', on));
   ipcMain.on('notifications', (_event, on: unknown) => setFlag('notifications', on));
   ipcMain.on('cat', (_event, on: unknown) => setFlag('cat', on));
+  ipcMain.on('screen-count', (_event, on: unknown) => setFlag('screenCount', on));
   ipcMain.on('copy-obs-path', () => clipboard.writeText(dataFile('overlay.html')));
   ipcMain.on('open-with-fortnite', (_event, on: unknown) => setFlag('openWithFortnite', on));
   ipcMain.on('theme', (_event, theme: unknown) => {
