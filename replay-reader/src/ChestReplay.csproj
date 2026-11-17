@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <!--
+    chest-replay.exe: reads one Fortnite .replay file and prints, as one line of JSON, how many chests the
+    replay's owner opened. The reading itself is LED-N's Fortnite-ChestCounter analyzer and the
+    FortniteReplayDecompressor library (both MIT, see ../LICENSE-Fortnite-ChestCounter and ../lib).
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <AssemblyName>chest-replay</AssemblyName>
+    <RootNamespace>ChestCounter</RootNamespace>
+    <InvariantGlobalization>true</InvariantGlobalization>
+    <!-- the parser finds its types by reflection: nothing may be trimmed away -->
+    <PublishTrimmed>false</PublishTrimmed>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\lib\FortniteReplayReader\FortniteReplayReader.csproj" />
+  </ItemGroup>
+</Project>

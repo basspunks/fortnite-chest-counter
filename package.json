@@ -1,0 +1,71 @@
+{
+  "name": "chest-counter",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Fortnite chest counter overlay: live counting by sound, exact count from replays, treasure hunt stats (unofficial fan tool)",
+  "author": "basspunks",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/basspunks/fortnite-chest-counter.git"
+  },
+  "homepage": "https://github.com/basspunks/fortnite-chest-counter#readme",
+  "main": "dist/main.js",
+  "scripts": {
+    "build": "tsc",
+    "start": "tsc && electron .",
+    "test": "vitest run",
+    "replay-reader": "dotnet publish replay-reader/src -c Release -o replay-reader/bin -v q -nologo",
+    "replay-reader:exe": "dotnet publish replay-reader/src -c Release -r win-x64 --self-contained -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true -p:EnableCompressionInSingleFile=true -o replay-reader/bin-exe -v q -nologo",
+    "dist": "tsc && npm run replay-reader:exe && electron-builder --win portable --publish never",
+    "release": "tsc && npm run replay-reader:exe && electron-builder --win portable --publish always"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "electron": "^45.3.3",
+    "electron-builder": "^26.18.0",
+    "typescript": "^7.0.2",
+    "vitest": "^5.1.0"
+  },
+  "build": {
+    "appId": "com.basspunks.chestcounter",
+    "productName": "Chest Counter",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "index.html",
+      "style.css",
+      "content/**/*",
+      "build/tray.png",
+      "package.json",
+      "assets/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "replay-reader/bin-exe/chest-replay.exe",
+        "to": "replay-reader/bin/chest-replay.exe"
+      },
+      {
+        "from": "native",
+        "to": "native"
+      }
+    ],
+    "win": {
+      "target": "portable",
+      "icon": "build/icon.ico"
+    },
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "basspunks",
+        "repo": "fortnite-chest-counter",
+        "releaseType": "release"
+      }
+    ],
+    "portable": {
+      "artifactName": "ChestCounter.exe"
+    }
+  }
+}

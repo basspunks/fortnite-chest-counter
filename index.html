@@ -1,0 +1,232 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' https://cdn.fortnite.bot https://raw.githubusercontent.com" />
+    <title>Chest Counter</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body data-view="counter" data-tab="sound">
+    <!-- The overlay bar. The mouse goes through it, except over ⚙ and while the position is unlocked. -->
+    <main id="counter">
+      <div class="numbers">
+        <div class="stat main">
+          <span class="label">Match</span><b id="match">0</b>
+          <div id="pops"></div>
+        </div>
+        <div class="stat"><span class="label">Session</span><b id="session">0</b></div>
+        <div class="stat"><span class="label">Total</span><b id="total">0</b></div>
+        <span id="replay-warning" class="warn-badge" hidden>⚠</span>
+        <span id="ear" class="ear" title="Not counting by sound"><span class="ear-icon"><span class="ear-emoji">🎧</span><img class="ear-cat" src="assets/ear-cat.png" alt="" /></span><span class="ear-dot"></span></span>
+        <button id="gear" class="icon" title="Settings">⚙</button>
+      </div>
+      <div id="history-line" class="history"></div>
+      <!-- only while moving: on a row of its own, so the bar keeps its width and the numbers do not shift -->
+      <div class="move-row moving-only">
+        <span class="hint">Drag the bar where you want it</span>
+        <button id="done" title="Lock the position">🔒 Lock</button>
+        <button id="quit" class="icon" title="Hide until Fortnite starts again (Quit completely: the icon next to the clock)">×</button>
+      </div>
+    </main>
+
+    <main id="settings">
+      <header>
+        <span class="brand"><span class="coin"></span>Chest Counter</span>
+        <button id="back" class="icon" title="Close settings">×</button>
+      </header>
+
+      <nav>
+        <button data-tab="sound">Counting</button>
+        <button data-tab="controls">Controls</button>
+        <button data-tab="look">Display</button>
+        <button data-tab="stats">Stats</button>
+      </nav>
+
+      <section class="tab" id="tab-sound">
+        <div class="card">
+          <label class="row switch-row">
+            <span>Open with Fortnite</span>
+            <input id="open-with-fortnite" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">Starts with Windows, hidden next to the clock, and shows the counter only while Fortnite runs. It hides a minute after the game closes, once the last replay is read. × on the bar only hides it; "Quit completely" (the icon next to the clock) stops it until you open it again.</p>
+          <label class="row switch-row">
+            <span>Notifications</span>
+            <input id="notifications" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">A Windows notification 5 minutes before a Treasure Hour, and when a replay shows you found a treasure.</p>
+        </div>
+
+        <div class="card">
+          <label class="row switch-row">
+            <span>Count chests by sound</span>
+            <input id="auto-count" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">Only Fortnite's own sound is heard: never Discord, music or anything else on your PC.</p>
+          <p class="status"><span id="sound-dot" class="dot"></span><span id="sound-status"></span></p>
+          <p id="fortnite-problem" class="hint warn"></p>
+        </div>
+
+        <div class="card">
+          <h3>Replays</h3>
+          <p class="status"><span id="replay-dot" class="dot"></span><span id="replay-status"></span></p>
+          <p class="hint">During a match the sound counts live. When it ends, the exact count from Fortnite's replay replaces it. Required: Fortnite → Settings → Game → Replays → Record Replays: On.</p>
+          <div class="row replay-files">
+            <span id="replay-files" class="hint"></span>
+            <button id="clean-replays">Clean up…</button>
+          </div>
+          <label class="row switch-row">
+            <span>Only count treasure hunt matches</span>
+            <input id="only-hunt" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">Battle Royale on the season's map only. Ranked, Reload, other limited modes and Creative are kept in the list but not in your totals.</p>
+        </div>
+
+        <div class="card">
+          <div class="row"><span>Sensitivity</span><span id="sensitivity-value" class="value"></span></div>
+          <input id="sensitivity" type="range" min="0" max="100" step="5" />
+          <div class="row ends"><span>Fewer false alarms</span><span>Catch more chests</span></div>
+          <p class="hint">Adjusts how the sound counts during a match. The replay still sets the exact number when the match ends.</p>
+        </div>
+      </section>
+
+      <section class="tab" id="tab-controls">
+        <div class="card">
+          <h3>Keyboard</h3>
+          <div class="bind"><span>Add chest</span><button data-key="add"></button></div>
+          <div class="bind"><span>Undo</span><button data-key="undo"></button></div>
+          <div class="bind"><span>New match</span><button data-key="newMatch"></button></div>
+          <div class="bind"><span>Show / hide bar</span><button data-key="toggleBar"></button></div>
+          <p class="hint">Click a key, then press the new one. Esc cancels.</p>
+          <p class="hint">Works best with F1–F12 or the numpad: a letter or number key used here no longer reaches the game or the chat.</p>
+        </div>
+
+        <div class="card">
+          <h3>Controller</h3>
+          <p class="status"><span id="pad-dot" class="dot"></span><span id="pad-status"></span></p>
+          <div class="bind">
+            <span>Add chest</span><button data-pad="add"></button><button class="icon" data-clear="add" title="Clear">×</button>
+          </div>
+          <div class="bind">
+            <span>Undo</span><button data-pad="undo"></button><button class="icon" data-clear="undo" title="Clear">×</button>
+          </div>
+          <div class="bind">
+            <span>New match</span><button data-pad="newMatch"></button><button class="icon" data-clear="newMatch" title="Clear">×</button>
+          </div>
+          <div class="bind">
+            <span>Show / hide bar</span><button data-pad="toggleBar"></button><button class="icon" data-clear="toggleBar" title="Clear">×</button>
+          </div>
+          <p class="hint">I use View as Add chest LOL, it's up to you tho.</p>
+        </div>
+      </section>
+
+      <section class="tab" id="tab-look">
+        <div class="card">
+          <h3>Theme</h3>
+          <div class="themes">
+            <button data-theme-pick="dark"><span class="swatch"></span>Dark</button>
+            <button data-theme-pick="midnight"><span class="swatch"></span>Midnight</button>
+            <button data-theme-pick="storm"><span class="swatch"></span>Storm</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="row"><span>Background</span><span id="opacity-value" class="value"></span></div>
+          <input id="opacity" type="range" min="0" max="100" step="5" />
+          <label class="row switch-row">
+            <span>Show last matches</span>
+            <input id="show-history" type="checkbox" class="switch" />
+          </label>
+          <label class="row switch-row">
+            <span>Cat instead of 🎧</span>
+            <input id="cat" type="checkbox" class="switch" />
+          </label>
+        </div>
+
+        <div class="card">
+          <label class="row switch-row">
+            <span>Lock position</span>
+            <input id="lock" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">Unlock, close settings and drag the counter. Press 🔒 Lock on it when it is in place.</p>
+        </div>
+
+        <div class="card">
+          <h3>OBS / streaming</h3>
+          <p class="hint">The same numbers on a transparent page. In OBS: Sources → + → Browser → tick "Local file" → pick this file, width 420, height 110.</p>
+          <div class="row">
+            <code id="obs-file" class="path"></code>
+            <button id="copy-obs">Copy path</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <h3>Version</h3>
+          <div class="row">
+            <span id="update-status" class="hint"></span>
+            <button id="install-update" hidden>Update</button>
+          </div>
+        </div>
+
+        <button id="reset" class="quiet">Reset all settings</button>
+      </section>
+
+      <section class="tab" id="tab-stats">
+        <div class="card wide">
+          <h3 id="week-title">Treasure hunt</h3>
+          <p id="week-ends" class="hint"></p>
+          <p id="hour-banner" class="banner"></p>
+        </div>
+
+        <div class="card">
+          <h3>Your chances</h3>
+          <div id="chances" class="table"></div>
+          <p class="hint">The chance each prize has dropped for you at least once. Weekly prizes count this week's chests, the others the whole hunt. Chests opened in a Treasure Hour count at its boosted odds.</p>
+        </div>
+
+        <div class="card">
+          <h3>Report</h3>
+          <div id="report" class="table"></div>
+        </div>
+
+        <div class="card wide">
+          <h3>Collection</h3>
+          <div id="collection"></div>
+          <p class="hint">Gold border: found in your replays. Got one another way? Click it to tick it.</p>
+        </div>
+
+        <div class="card">
+          <h3>Chests from before</h3>
+          <div class="row inputs">
+            <input id="add-chests" type="number" placeholder="Chests" step="1" />
+            <button id="add-chests-go">Add</button>
+          </div>
+          <div class="row inputs">
+            <input id="career-matches" type="number" placeholder="Matches in Career" min="1" step="1" />
+            <button id="estimate-go">Estimate</button>
+          </div>
+          <p class="hint">Add the chests you opened before the counter (a negative number removes some). Or type the matches shown in Fortnite → Career → Stats: the matches it has not seen count at your average. A new estimate replaces the old one.</p>
+          <div id="manual"></div>
+        </div>
+
+        <div class="card reset-card">
+          <button id="reset-stats" class="danger">Reset all stats…</button>
+        </div>
+      </section>
+
+      <p id="message"></p>
+
+      <!-- asks before wiping stats or cleaning up replays; "Cancel" is the safe choice and has the focus -->
+      <div id="confirm" class="modal" hidden>
+        <div class="dialog" role="alertdialog" aria-labelledby="confirm-title">
+          <h4 id="confirm-title"></h4>
+          <p id="confirm-text"></p>
+          <div class="buttons">
+            <button id="confirm-cancel">Cancel</button>
+            <button id="confirm-yes" class="danger">Reset</button>
+          </div>
+        </div>
+      </div>
+    </main>
+    <script src="dist/renderer.js"></script>
+  </body>
+</html>

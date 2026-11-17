@@ -1,0 +1,8 @@
+src/bin/
+src/obj/
+lib/**/bin/
+lib/**/obj/
+bin/
+build.log
+publish.log
+bin-exe/
