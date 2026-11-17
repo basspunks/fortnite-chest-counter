@@ -80,6 +80,13 @@
         </div>
 
         <div class="card">
+          <div class="row"><span>Sensitivity</span><span id="sensitivity-value" class="value"></span></div>
+          <input id="sensitivity" type="range" min="0" max="100" step="5" />
+          <div class="row ends"><span>Fewer false alarms</span><span>Catch more chests</span></div>
+          <p class="hint">Adjusts how the sound counts during a match. The replay still sets the exact number when the match ends.</p>
+        </div>
+
+        <div class="card">
           <h3>Replays</h3>
           <p class="status"><span id="replay-dot" class="dot"></span><span id="replay-status"></span></p>
           <p class="hint">When a match ends, the exact count from Fortnite's replay replaces the live one. Needs Fortnite → Settings → Game → Replays → Record Replays: On. FPS problems? Turn Record Replays off: the replay recording can make the game stutter, and the live count still works without it.</p>
@@ -92,13 +99,6 @@
             <input id="only-hunt" type="checkbox" class="switch" />
           </label>
           <p class="hint">Battle Royale on the season's map only. Ranked, Reload, other limited modes and Creative are kept in the list but not in your totals.</p>
-        </div>
-
-        <div class="card">
-          <div class="row"><span>Sensitivity</span><span id="sensitivity-value" class="value"></span></div>
-          <input id="sensitivity" type="range" min="0" max="100" step="5" />
-          <div class="row ends"><span>Fewer false alarms</span><span>Catch more chests</span></div>
-          <p class="hint">Adjusts how the sound counts during a match. The replay still sets the exact number when the match ends.</p>
         </div>
       </section>
 

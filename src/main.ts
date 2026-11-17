@@ -353,7 +353,9 @@ void app.whenReady().then(() => {
   };
 
   const heardChest = (at: number): void => {
-    if (matches.phase === 'lobby') return; // lobby music, not a chest
+    // only in a match: the lobby's music can sound like a chest, and so can anything while it is not known where the
+    // player is (no match line in Fortnite's log yet)
+    if (matches.phase !== 'match') return;
     audioCheck.heardAt.push(Math.round(at * 10) / 10);
     heard++;
     if (!readingScreen()) {
@@ -367,7 +369,7 @@ void app.whenReady().then(() => {
     const heardMs = Date.now();
     setTimeout(() => {
       const seenNear = seenAtMs.some((ms) => ms >= heardMs - SOUND_AFTER_SCREEN.beforeMs && ms <= heardMs + SOUND_AFTER_SCREEN.afterMs);
-      if (!seenNear && readingScreen() && matches.phase !== 'lobby') run('add', 'sound');
+      if (!seenNear && readingScreen() && matches.phase === 'match') run('add', 'sound');
     }, SOUND_AFTER_SCREEN.afterMs);
   };
 
@@ -385,7 +387,7 @@ void app.whenReady().then(() => {
   const textWatcher = new ChestTextWatcher();
   ipcMain.on('screen-frame', (_event, pixels: unknown) => {
     if (!(pixels instanceof Uint8Array || pixels instanceof Uint8ClampedArray) || pixels.length !== AREA.width * AREA.height * 4) return;
-    if (!settings.liveCount || !settings.screenCount || matches.phase === 'lobby') return;
+    if (!settings.liveCount || !settings.screenCount || matches.phase !== 'match') return;
     // chests opened one after another are listed together ("RARE CHEST X2", "SPRITE CHEST"): each one counts
     const shown = chestsShown(textMask(pixels, AREA.width, AREA.height), AREA.width, AREA.height);
     for (let opened = textWatcher.push(shown, Date.now()); opened > 0; opened--) {

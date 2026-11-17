@@ -1,4 +1,4 @@
-import { appendFileSync, mkdtempSync, writeFileSync } from 'node:fs';
+import { appendFileSync, mkdtempSync, utimesSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { describe, expect, it } from 'vitest';
@@ -81,9 +81,33 @@ describe('MatchLog', () => {
     log.stop();
   });
 
-  it('says nothing about the past when the game was in a match', async () => {
+  it('finds the lobby even when the game wrote more than 4 MB since', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
+    writeFileSync(file, `${LINES.boot}\n${LINES.warmup}\n${LINES.back}\n${`${LINES.setting}\n`.repeat(60_000)}`); // about 6 MB
+    const events: MatchEvent[] = [];
+    const log = new MatchLog((event) => events.push(event), file);
+    log.start(60_000);
+    await new Promise((done) => setImmediate(done));
+    expect(events).toEqual(['lobby']);
+    log.stop();
+  });
+
+  it('says a match is on when the app is opened during one', async () => {
     const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
     writeFileSync(file, `${LINES.boot}\n${LINES.warmup}\n${LINES.step}\n`);
+    const events: MatchEvent[] = [];
+    const log = new MatchLog((event) => events.push(event), file);
+    log.start(60_000);
+    await new Promise((done) => setImmediate(done));
+    expect(events).toEqual(['start']);
+    log.stop();
+  });
+
+  it('says nothing about a match in the log of a game that is closed', async () => {
+    const file = join(mkdtempSync(join(tmpdir(), 'chest-log-')), 'FortniteGame.log');
+    writeFileSync(file, `${LINES.boot}\n${LINES.warmup}\n${LINES.step}\n`);
+    const hourAgo = (Date.now() - 3_600_000) / 1000;
+    utimesSync(file, hourAgo, hourAgo);
     const events: MatchEvent[] = [];
     const log = new MatchLog((event) => events.push(event), file);
     log.start(60_000);

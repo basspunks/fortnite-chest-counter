@@ -45,33 +45,43 @@ export class MatchLog {
 
   /**
    * Starts at the end of the file: what happened before the app started does not count. One thing is taken from
-   * before: if the game is already back in the lobby, that is said at once (the app was opened after Fortnite, and
-   * would otherwise count the lobby's sounds until the next match).
+   * before: where the player is. Opened in the lobby, it must not count the lobby's sounds until the next match;
+   * opened during a match, it reads the screen at once.
    */
   start(everyMs = 1000): void {
     this.offset = this.size();
     this.head = this.firstBytes();
-    if (this.lastEventSoFar() === 'lobby') setImmediate(() => this.onEvent('lobby'));
+    const where = this.lastEventSoFar();
+    // a match is still on only if the game is still writing its log (it writes all the time; a closed game does not)
+    if (where === 'lobby' || (where === 'start' && this.writtenWithinMs(120_000))) setImmediate(() => this.onEvent(where));
     this.timer = setInterval(() => this.poll(), everyMs);
   }
 
-  /** The last match event already in the log (its last 4 MB), if any. */
+  /**
+   * The last match event already in the log, if any, looking back 4 MB at a time. The game can write well over
+   * 4 MB while it waits in the lobby: looking at the last 4 MB only, an app opened then counted the lobby's sounds.
+   */
   private lastEventSoFar(): MatchEvent | undefined {
     const size = this.offset ?? 0;
-    const length = Math.min(size, 4 * 1024 * 1024);
-    if (length === 0) return undefined;
-    const buffer = Buffer.alloc(length);
+    const step = 4 * 1024 * 1024;
+    const overlap = 4096; // a line cut in two by a step is whole in one of them
     try {
       const handle = openSync(this.file, 'r');
       try {
-        readSync(handle, buffer, 0, length, size - length);
+        for (let end = size; end > 0; end -= step) {
+          const from = Math.max(0, end - step - overlap);
+          const buffer = Buffer.alloc(end - from);
+          readSync(handle, buffer, 0, buffer.length, from);
+          const found = matchEvents(buffer.toString('utf8')).at(-1);
+          if (found !== undefined) return found;
+        }
       } finally {
         closeSync(handle);
       }
     } catch {
-      return undefined;
+      // no log yet
     }
-    return matchEvents(buffer.toString('utf8')).at(-1);
+    return undefined;
   }
 
   stop(): void {
@@ -120,6 +130,14 @@ export class MatchLog {
       }
     } catch {
       return undefined;
+    }
+  }
+
+  private writtenWithinMs(ms: number): boolean {
+    try {
+      return Date.now() - statSync(this.file).mtimeMs < ms;
+    } catch {
+      return false;
     }
   }
 
