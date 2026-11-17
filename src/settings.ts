@@ -39,6 +39,8 @@ export interface Settings {
   readonly cat: boolean;
   /** Count chests from the "+XP CHEST" text on screen (the sound is then only a backup). */
   readonly screenCount: boolean;
+  /** Count during matches at all (screen and sound); off, only the replays and your keys count. */
+  readonly liveCount: boolean;
   /** Version of the saved settings, for one-time changes of a default (see readSettings). */
   readonly version: number;
 }
@@ -56,6 +58,7 @@ export const DEFAULT_SETTINGS: Settings = {
   notifications: true,
   cat: false,
   screenCount: true,
+  liveCount: true,
   version: 2,
 };
 
@@ -68,7 +71,7 @@ function chord(buttons: readonly number[]): number[] {
 
 /** Reads settings from stored JSON; anything missing or broken falls back to its default. */
 export function readSettings(data: unknown): Settings {
-  const stored = (data ?? {}) as { keys?: Record<string, unknown>; pad?: Record<string, unknown>; opacity?: unknown; autoCount?: unknown; sensitivity?: unknown; showHistory?: unknown; theme?: unknown; onlyHuntMatches?: unknown; openWithFortnite?: unknown; notifications?: unknown; cat?: unknown; screenCount?: unknown; version?: unknown };
+  const stored = (data ?? {}) as { keys?: Record<string, unknown>; pad?: Record<string, unknown>; opacity?: unknown; autoCount?: unknown; sensitivity?: unknown; showHistory?: unknown; theme?: unknown; onlyHuntMatches?: unknown; openWithFortnite?: unknown; notifications?: unknown; cat?: unknown; screenCount?: unknown; liveCount?: unknown; version?: unknown };
   const keys = { ...DEFAULT_SETTINGS.keys };
   const pad: Record<Action, readonly number[]> = { ...DEFAULT_SETTINGS.pad };
   for (const action of ACTIONS) {
@@ -87,10 +90,11 @@ export function readSettings(data: unknown): Settings {
   const notifications = flag(stored.notifications, DEFAULT_SETTINGS.notifications);
   const cat = flag(stored.cat, DEFAULT_SETTINGS.cat);
   const screenCount = flag(stored.screenCount, DEFAULT_SETTINGS.screenCount);
+  const liveCount = flag(stored.liveCount, DEFAULT_SETTINGS.liveCount);
   // version 2 turned "Open with Fortnite" on by default: settings saved before that get it turned on once
   const upToDate = stored.version === DEFAULT_SETTINGS.version;
   const openWithFortnite = upToDate ? flag(stored.openWithFortnite, DEFAULT_SETTINGS.openWithFortnite) : DEFAULT_SETTINGS.openWithFortnite;
-  return withOpacity({ keys, pad, opacity: DEFAULT_SETTINGS.opacity, autoCount, sensitivity, showHistory, theme, onlyHuntMatches, openWithFortnite, notifications, cat, screenCount, version: DEFAULT_SETTINGS.version }, stored.opacity);
+  return withOpacity({ keys, pad, opacity: DEFAULT_SETTINGS.opacity, autoCount, sensitivity, showHistory, theme, onlyHuntMatches, openWithFortnite, notifications, cat, screenCount, liveCount, version: DEFAULT_SETTINGS.version }, stored.opacity);
 }
 
 /** The settings with a new background opacity, kept between 0 and 1. Anything that is not a number changes nothing. */

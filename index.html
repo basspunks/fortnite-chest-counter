@@ -58,10 +58,16 @@
 
         <div class="card">
           <label class="row switch-row">
+            <h3>Live counting</h3>
+            <input id="live-count" type="checkbox" class="switch" />
+          </label>
+          <p class="hint">Counts chests during the match, by screen or by sound. Off: only the replay counts, after each match, and your keys.</p>
+          <div id="live-ways" class="live-ways">
+          <label class="row switch-row">
             <span>Count by reading "+XP CHEST" on screen</span>
             <input id="screen-count" type="checkbox" class="switch" />
           </label>
-          <p class="hint">During matches the counter looks at the small area right of the crosshair, five times a second, for the "+600 XP / CHEST" text. Nothing is recorded or sent: each look is dropped at once. Needs Windowed Fullscreen.</p>
+          <p class="hint">During matches the counter looks at the small area right of the crosshair, five times a second, for the "+600 XP / CHEST" text. Nothing is recorded or sent: each look is dropped at once. Needs Windowed Fullscreen and the game in English (other languages later).</p>
           <p class="status"><span id="screen-dot" class="dot"></span><span id="screen-status"></span></p>
           <label class="row switch-row">
             <span>Count chests by sound</span>
@@ -70,6 +76,7 @@
           <p class="hint">Only Fortnite's own sound is heard: never Discord, music or anything else on your PC.</p>
           <p class="status"><span id="sound-dot" class="dot"></span><span id="sound-status"></span></p>
           <p id="fortnite-problem" class="hint warn"></p>
+          </div>
         </div>
 
         <div class="card">

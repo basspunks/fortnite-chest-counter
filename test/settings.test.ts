@@ -50,6 +50,7 @@ describe('settings', () => {
       notifications: true,
       cat: false,
       screenCount: true,
+      liveCount: true,
       version: 2,
     });
     expect(readSettings({ openWithFortnite: false, onlyHuntMatches: false, version: 2 })).toMatchObject({ openWithFortnite: false, onlyHuntMatches: false });

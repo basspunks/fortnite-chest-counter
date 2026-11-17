@@ -973,3 +973,16 @@ code.path {
   font-size: 10px;
   color: var(--muted);
 }
+
+/* the ways of live counting, under its switch; greyed out while it is off */
+.live-ways {
+  display: grid;
+  gap: 6px;
+  padding-left: 10px;
+  border-left: 2px solid var(--line);
+}
+
+.live-ways.off {
+  opacity: 0.45;
+  pointer-events: none;
+}

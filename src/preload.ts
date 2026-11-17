@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld('chests', {
   notifications: (on: boolean): void => ipcRenderer.send('notifications', on),
   cat: (on: boolean): void => ipcRenderer.send('cat', on),
   screenCount: (on: boolean): void => ipcRenderer.send('screen-count', on),
+  liveCount: (on: boolean): void => ipcRenderer.send('live-count', on),
   screenStatus: (status: string): void => ipcRenderer.send('screen-status', status),
   screenFrame: (pixels: Uint8ClampedArray): void => ipcRenderer.send('screen-frame', pixels),
   copyObsPath: (): void => ipcRenderer.send('copy-obs-path'),
